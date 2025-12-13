@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { assignmentsService, sessionsService, daysService } from '../../services/api'
+import { assignmentsService, sessionsService, daysService, moderatorsService } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
 
 export default function Assignments() {
@@ -8,8 +8,12 @@ export default function Assignments() {
   const [running, setRunning] = useState(false)
   const [sessions, setSessions] = useState([])
   const [days, setDays] = useState([])
+  const [moderators, setModerators] = useState([])
   const [filter, setFilter] = useState({ day_id: '' })
   const [showAutoModal, setShowAutoModal] = useState(false)
+  const [showManualModal, setShowManualModal] = useState(false)
+  const [selectedSession, setSelectedSession] = useState(null)
+  const [selectedModerator, setSelectedModerator] = useState('')
   const [autoOptions, setAutoOptions] = useState({
     clear_existing: false,
     day_id: null
@@ -26,8 +30,12 @@ export default function Assignments() {
 
   const loadData = async () => {
     try {
-      const daysRes = await daysService.getAll()
+      const [daysRes, modsRes] = await Promise.all([
+        daysService.getAll(),
+        moderatorsService.getAll()
+      ])
       setDays(daysRes.data.data)
+      setModerators(modsRes.data.data)
     } catch (err) {
       toast.error('Failed to load data')
     }
@@ -71,6 +79,37 @@ export default function Assignments() {
     }
   }
 
+  const openManualModal = (session) => {
+    setSelectedSession(session)
+    setSelectedModerator('')
+    setShowManualModal(true)
+  }
+
+  const handleManualAssign = async () => {
+    if (!selectedModerator) {
+      toast.error('Please select a moderator')
+      return
+    }
+
+    try {
+      const response = await assignmentsService.manualAssign(selectedSession.id, parseInt(selectedModerator))
+      if (response.data.data.warning) {
+        toast.warning(response.data.data.warning)
+      }
+      toast.success('Moderator assigned successfully')
+      setShowManualModal(false)
+      loadSessions()
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Failed to assign moderator')
+    }
+  }
+
+  const getAvailableModerators = () => {
+    if (!selectedSession) return []
+    const assignedIds = selectedSession.assigned_moderators.map(m => m.id)
+    return moderators.filter(m => !assignedIds.includes(m.id))
+  }
+
   const resetAssignments = async () => {
     if (!confirm('Are you sure you want to clear all assignments?')) return
 
@@ -85,7 +124,8 @@ export default function Assignments() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr + 'T00:00:00')
+    const dateOnly = dateStr.split('T')[0]
+    const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   }
 
@@ -189,10 +229,7 @@ export default function Assignments() {
                       <span>{mod.name}</span>
                       <button
                         className="btn-remove"
-                        onClick={() => {
-                          // Need to get assignment ID - for now just reload
-                          loadSessions()
-                        }}
+                        onClick={() => removeAssignment(mod.assignment_id)}
                         title="Remove assignment"
                       >
                         &times;
@@ -201,6 +238,13 @@ export default function Assignments() {
                   ))
                 )}
               </div>
+              <button
+                className="btn btn-outline btn-sm mt-3"
+                onClick={() => openManualModal(session)}
+                style={{ width: '100%' }}
+              >
+                + Assign Moderator
+              </button>
             </div>
           ))}
         </div>
@@ -268,6 +312,57 @@ export default function Assignments() {
               </button>
               <button className="btn btn-primary" onClick={runAutoAssign} disabled={running}>
                 {running ? 'Running...' : 'Run Auto-Assign'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showManualModal && selectedSession && (
+        <div className="modal-overlay" onClick={() => setShowManualModal(false)}>
+          <div className="modal" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">Assign Moderator</h3>
+              <button className="modal-close" onClick={() => setShowManualModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <p className="mb-4">
+                <strong>Session:</strong> {selectedSession.name}<br />
+                <span className="text-sm text-muted">
+                  {formatDate(selectedSession.date)} | {selectedSession.start_time?.slice(0, 5)} - {selectedSession.end_time?.slice(0, 5)}
+                </span>
+              </p>
+
+              <div className="form-group">
+                <label className="form-label">Select Moderator</label>
+                <select
+                  className="form-input"
+                  value={selectedModerator}
+                  onChange={e => setSelectedModerator(e.target.value)}
+                >
+                  <option value="">Choose a moderator...</option>
+                  {getAvailableModerators().map(mod => (
+                    <option key={mod.id} value={mod.id}>
+                      {mod.name} ({mod.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {getAvailableModerators().length === 0 && (
+                <p className="text-warning text-sm">All moderators are already assigned to this session.</p>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-outline" onClick={() => setShowManualModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary"
+                onClick={handleManualAssign}
+                disabled={!selectedModerator}
+              >
+                Assign
               </button>
             </div>
           </div>

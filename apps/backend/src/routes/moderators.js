@@ -68,7 +68,7 @@ export default async function moderatorsRoutes(fastify, options) {
 
   // POST /api/moderators/register
   fastify.post('/register', async (request, reply) => {
-    const { name, email, phone } = request.body;
+    const { name, email, phone, schedule_preference } = request.body;
 
     if (!name || !email) {
       throw validationError('Name and email are required');
@@ -79,6 +79,12 @@ export default async function moderatorsRoutes(fastify, options) {
     if (!emailRegex.test(email)) {
       throw validationError('Invalid email format');
     }
+
+    // Validate schedule_preference if provided
+    const validPreferences = ['consecutive', 'spread_out', 'no_preference'];
+    const preference = schedule_preference && validPreferences.includes(schedule_preference)
+      ? schedule_preference
+      : 'no_preference';
 
     // Check for duplicate email
     const existing = await db.query(
@@ -91,10 +97,10 @@ export default async function moderatorsRoutes(fastify, options) {
     }
 
     const result = await db.query(
-      `INSERT INTO moderators (name, email, phone)
-       VALUES ($1, $2, $3)
+      `INSERT INTO moderators (name, email, phone, schedule_preference)
+       VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [name, email.toLowerCase(), phone || null]
+      [name, email.toLowerCase(), phone || null, preference]
     );
 
     const moderator = result.rows[0];
@@ -144,16 +150,23 @@ export default async function moderatorsRoutes(fastify, options) {
   // PUT /api/moderators/:id
   fastify.put('/:id', async (request, reply) => {
     const { id } = request.params;
-    const { name, email, phone } = request.body;
+    const { name, email, phone, schedule_preference } = request.body;
+
+    // Validate schedule_preference if provided
+    const validPreferences = ['consecutive', 'spread_out', 'no_preference'];
+    const preference = schedule_preference && validPreferences.includes(schedule_preference)
+      ? schedule_preference
+      : null;
 
     const result = await db.query(
       `UPDATE moderators
        SET name = COALESCE($1, name),
            email = COALESCE($2, email),
-           phone = COALESCE($3, phone)
-       WHERE id = $4
+           phone = COALESCE($3, phone),
+           schedule_preference = COALESCE($4, schedule_preference)
+       WHERE id = $5
        RETURNING *`,
-      [name, email?.toLowerCase(), phone, id]
+      [name, email?.toLowerCase(), phone, preference, id]
     );
 
     if (result.rows.length === 0) {

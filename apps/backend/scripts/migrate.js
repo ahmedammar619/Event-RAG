@@ -56,6 +56,7 @@ const migrations = [
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(50),
+    schedule_preference VARCHAR(20) DEFAULT 'no_preference',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`,
 
@@ -84,7 +85,15 @@ const migrations = [
   `CREATE INDEX IF NOT EXISTS idx_availability_day ON availability(event_day_id)`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_day ON sessions(event_day_id)`,
   `CREATE INDEX IF NOT EXISTS idx_assignments_session ON assignments(session_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_assignments_moderator ON assignments(moderator_id)`
+  `CREATE INDEX IF NOT EXISTS idx_assignments_moderator ON assignments(moderator_id)`,
+
+  // 009: Add schedule_preference to moderators (if not exists)
+  `DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'moderators' AND column_name = 'schedule_preference') THEN
+       ALTER TABLE moderators ADD COLUMN schedule_preference VARCHAR(20) DEFAULT 'no_preference';
+     END IF;
+   END $$`
 ];
 
 async function migrate() {

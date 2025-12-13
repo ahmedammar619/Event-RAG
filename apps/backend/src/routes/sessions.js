@@ -14,7 +14,7 @@ export default async function sessionsRoutes(fastify, options) {
         ed.date,
         COALESCE(
           json_agg(
-            json_build_object('id', m.id, 'name', m.name)
+            json_build_object('id', m.id, 'name', m.name, 'assignment_id', a.id)
           ) FILTER (WHERE m.id IS NOT NULL),
           '[]'
         ) as assigned_moderators
@@ -69,7 +69,7 @@ export default async function sessionsRoutes(fastify, options) {
         ed.date,
         COALESCE(
           json_agg(
-            json_build_object('id', m.id, 'name', m.name, 'email', m.email)
+            json_build_object('id', m.id, 'name', m.name, 'email', m.email, 'assignment_id', a.id)
           ) FILTER (WHERE m.id IS NOT NULL),
           '[]'
         ) as assigned_moderators
