@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { daysService, availabilityService, moderatorsService } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
-import Footer from '../../components/common/Footer'
 
 export default function Availability() {
   const { moderatorId } = useParams()
@@ -14,6 +13,7 @@ export default function Availability() {
   const [moderator, setModerator] = useState(null)
   const [days, setDays] = useState([])
   const [availability, setAvailability] = useState({})
+  const [schedulePreference, setSchedulePreference] = useState('no_preference')
 
   useEffect(() => {
     loadData()
@@ -27,7 +27,9 @@ export default function Availability() {
         availabilityService.getByModerator(moderatorId)
       ])
 
-      setModerator(modRes.data.data)
+      const mod = modRes.data.data
+      setModerator(mod)
+      setSchedulePreference(mod.schedule_preference || 'no_preference')
       setDays(daysRes.data.data)
 
       // Group existing availability by day
@@ -91,7 +93,12 @@ export default function Availability() {
         })
       })
 
-      await availabilityService.bulkCreate(moderatorId, slots)
+      // Save availability and update schedule preference
+      await Promise.all([
+        availabilityService.bulkCreate(moderatorId, slots),
+        moderatorsService.update(moderatorId, { schedule_preference: schedulePreference })
+      ])
+
       toast.success('Availability saved successfully!')
 
       // Navigate to assignments page
@@ -135,21 +142,23 @@ export default function Availability() {
   }
 
   return (
-    <div className="availability-page">
-      <div className="availability-container">
-        <div className="availability-header">
-          <Link to="/" className="back-link">&larr; Back</Link>
-          <h1>Set Your Availability</h1>
-          <p>Hello, <strong>{moderator?.name}</strong>! Select when you're available to volunteer.</p>
+    <div className="min-h-screen p-4 md:p-8 pb-20 bg-slate-50">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <Link to="/" className="inline-block mb-4 text-slate-500 text-sm hover:text-slate-700">
+            &larr; Back
+          </Link>
+          <h1 className="text-2xl font-semibold mb-2">Set Your Availability</h1>
+          <p className="text-slate-500">Hello, <strong className="text-slate-800">{moderator?.name}</strong>! Select when you're available to volunteer.</p>
         </div>
 
-        <div className="days-list">
+        <div className="flex flex-col gap-4">
           {days.map(day => (
-            <div key={day.id} className="day-card card">
-              <div className="day-header">
+            <div key={day.id} className="card">
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
                 <div>
-                  <h3>{formatDate(day.date)}</h3>
-                  <p className="text-muted text-sm">
+                  <h3 className="text-lg font-semibold mb-1">{formatDate(day.date)}</h3>
+                  <p className="text-slate-500 text-sm">
                     Event hours: {day.start_time.slice(0, 5)} - {day.end_time.slice(0, 5)}
                   </p>
                 </div>
@@ -163,13 +172,13 @@ export default function Availability() {
               </div>
 
               {(availability[day.id] || []).length === 0 ? (
-                <p className="text-muted text-sm">No availability set for this day</p>
+                <p className="text-slate-500 text-sm">No availability set for this day</p>
               ) : (
-                <div className="slots-list">
+                <div className="flex flex-col gap-3">
                   {availability[day.id].map((slot, index) => (
-                    <div key={index} className="slot-row">
+                    <div key={index} className="flex flex-wrap items-center gap-3">
                       <select
-                        className="form-input"
+                        className="form-input w-auto min-w-[100px] flex-1 sm:flex-none"
                         value={slot.start_time}
                         onChange={e => updateSlot(day.id, index, 'start_time', e.target.value)}
                       >
@@ -177,9 +186,9 @@ export default function Availability() {
                           <option key={time} value={time}>{time}</option>
                         ))}
                       </select>
-                      <span>to</span>
+                      <span className="text-slate-500">to</span>
                       <select
-                        className="form-input"
+                        className="form-input w-auto min-w-[100px] flex-1 sm:flex-none"
                         value={slot.end_time}
                         onChange={e => updateSlot(day.id, index, 'end_time', e.target.value)}
                       >
@@ -210,96 +219,69 @@ export default function Availability() {
         )}
 
         {days.length > 0 && (
-          <div className="availability-actions">
-            <button
-              className="btn btn-primary btn-lg"
-              onClick={handleSubmit}
-              disabled={saving}
-              style={{ width: '100%' }}
-            >
-              {saving ? 'Saving...' : 'Save Availability'}
-            </button>
-          </div>
+          <>
+            {/* Schedule Preference */}
+            <div className="card mt-6">
+              <h3 className="text-lg font-semibold mb-2">Schedule Preference</h3>
+              <p className="text-sm text-slate-500 mb-4">How would you prefer your sessions to be scheduled?</p>
+              <div className="flex flex-col gap-2">
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all hover:border-blue-500 hover:bg-blue-50/50 ${schedulePreference === 'consecutive' ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
+                  <input
+                    type="radio"
+                    name="schedule_preference"
+                    value="consecutive"
+                    checked={schedulePreference === 'consecutive'}
+                    onChange={e => setSchedulePreference(e.target.value)}
+                    className="mt-1"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Back-to-back</span>
+                    <span className="text-xs text-slate-500">I prefer sessions one after another</span>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all hover:border-blue-500 hover:bg-blue-50/50 ${schedulePreference === 'spread_out' ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
+                  <input
+                    type="radio"
+                    name="schedule_preference"
+                    value="spread_out"
+                    checked={schedulePreference === 'spread_out'}
+                    onChange={e => setSchedulePreference(e.target.value)}
+                    className="mt-1"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">Spread out</span>
+                    <span className="text-xs text-slate-500">I prefer breaks between sessions</span>
+                  </div>
+                </label>
+                <label className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-all hover:border-blue-500 hover:bg-blue-50/50 ${schedulePreference === 'no_preference' ? 'border-blue-500 bg-blue-50' : 'border-slate-200'}`}>
+                  <input
+                    type="radio"
+                    name="schedule_preference"
+                    value="no_preference"
+                    checked={schedulePreference === 'no_preference'}
+                    onChange={e => setSchedulePreference(e.target.value)}
+                    className="mt-1"
+                  />
+                  <div className="flex flex-col">
+                    <span className="font-medium">No preference</span>
+                    <span className="text-xs text-slate-500">I'm flexible with scheduling</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="mt-8">
+              <button
+                className="btn btn-primary btn-lg w-full"
+                onClick={handleSubmit}
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Availability'}
+              </button>
+            </div>
+          </>
         )}
       </div>
-      <Footer />
-
-      <style>{`
-        .availability-page {
-          min-height: 100vh;
-          padding: 2rem;
-          padding-bottom: 5rem;
-          background: var(--bg);
-        }
-
-        .availability-container {
-          max-width: 700px;
-          margin: 0 auto;
-        }
-
-        .availability-header {
-          margin-bottom: 2rem;
-        }
-
-        .back-link {
-          display: inline-block;
-          margin-bottom: 1rem;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-        }
-
-        .availability-header h1 {
-          font-size: 1.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .day-card {
-          margin-bottom: 1rem;
-        }
-
-        .day-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 1rem;
-        }
-
-        .day-header h3 {
-          font-size: 1.125rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .slots-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.75rem;
-        }
-
-        .slot-row {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-        }
-
-        .slot-row select {
-          width: auto;
-        }
-
-        .availability-actions {
-          margin-top: 2rem;
-        }
-
-        @media (max-width: 640px) {
-          .slot-row {
-            flex-wrap: wrap;
-          }
-
-          .slot-row select {
-            flex: 1;
-            min-width: 100px;
-          }
-        }
-      `}</style>
     </div>
   )
 }

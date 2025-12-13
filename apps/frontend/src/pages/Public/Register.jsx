@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { moderatorsService } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
-import Footer from '../../components/common/Footer'
 
 export default function Register() {
   const navigate = useNavigate()
@@ -11,8 +10,7 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    phone: '',
-    schedule_preference: 'no_preference'
+    phone: ''
   })
   const [errors, setErrors] = useState({})
 
@@ -37,7 +35,6 @@ export default function Register() {
       const response = await moderatorsService.register(form)
       const moderator = response.data.data
 
-      // Store token for later use
       localStorage.setItem('moderator_token', moderator.token)
       localStorage.setItem('moderator_id', moderator.id)
 
@@ -47,7 +44,6 @@ export default function Register() {
       const message = err.response?.data?.error?.message || 'Registration failed'
       toast.error(message)
 
-      // If already registered, offer to go to availability
       if (err.response?.data?.error?.code === 'CONFLICT') {
         try {
           const existing = await moderatorsService.getByEmail(form.email)
@@ -65,15 +61,17 @@ export default function Register() {
   }
 
   return (
-    <div className="register-page">
-      <div className="register-container">
-        <div className="register-header">
-          <Link to="/" className="back-link">&larr; Back</Link>
-          <h1>Volunteer Registration</h1>
-          <p>Register as a moderator volunteer for MASCOM 2025</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-slate-50">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block mb-4 text-slate-500 text-sm hover:text-slate-700">
+            &larr; Back
+          </Link>
+          <h1 className="text-2xl font-semibold mb-2">Volunteer Registration</h1>
+          <p className="text-slate-500">Register as a moderator volunteer for MASCOM 2025</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="register-form card">
+        <form onSubmit={handleSubmit} className="card p-8">
           <div className="form-group">
             <label className="form-label">Full Name *</label>
             <input
@@ -110,162 +108,15 @@ export default function Register() {
             {errors.phone && <p className="form-error">{errors.phone}</p>}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Schedule Preference</label>
-            <p className="form-hint">How would you prefer your sessions to be scheduled?</p>
-            <div className="preference-options">
-              <label className="preference-option">
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="consecutive"
-                  checked={form.schedule_preference === 'consecutive'}
-                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
-                />
-                <div className="preference-content">
-                  <span className="preference-title">Back-to-back</span>
-                  <span className="preference-desc">I prefer sessions one after another</span>
-                </div>
-              </label>
-              <label className="preference-option">
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="spread_out"
-                  checked={form.schedule_preference === 'spread_out'}
-                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
-                />
-                <div className="preference-content">
-                  <span className="preference-title">Spread out</span>
-                  <span className="preference-desc">I prefer breaks between sessions</span>
-                </div>
-              </label>
-              <label className="preference-option">
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="no_preference"
-                  checked={form.schedule_preference === 'no_preference'}
-                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
-                />
-                <div className="preference-content">
-                  <span className="preference-title">No preference</span>
-                  <span className="preference-desc">I'm flexible with scheduling</span>
-                </div>
-              </label>
-            </div>
-          </div>
-
-          <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%' }}>
+          <button type="submit" className="btn btn-primary btn-lg w-full" disabled={loading}>
             {loading ? 'Registering...' : 'Continue to Availability'}
           </button>
         </form>
 
-        <p className="register-note">
-          Already registered? <Link to="/">Enter your email</Link> to update your availability.
+        <p className="text-center mt-6 text-sm text-slate-500">
+          Already registered? <Link to="/lookup">Enter your email</Link> to update your availability.
         </p>
       </div>
-      <Footer />
-
-      <style>{`
-        .register-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-          background: var(--bg);
-        }
-
-        .register-container {
-          width: 100%;
-          max-width: 480px;
-        }
-
-        .register-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .back-link {
-          display: inline-block;
-          margin-bottom: 1rem;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-        }
-
-        .register-header h1 {
-          font-size: 1.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .register-header p {
-          color: var(--text-muted);
-        }
-
-        .register-form {
-          padding: 2rem;
-        }
-
-        .register-note {
-          text-align: center;
-          margin-top: 1.5rem;
-          font-size: 0.875rem;
-          color: var(--text-muted);
-        }
-
-        .form-hint {
-          font-size: 0.875rem;
-          color: var(--text-muted);
-          margin-bottom: 0.75rem;
-        }
-
-        .preference-options {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .preference-option {
-          display: flex;
-          align-items: flex-start;
-          gap: 0.75rem;
-          padding: 0.75rem;
-          border: 1px solid var(--border);
-          border-radius: var(--radius);
-          cursor: pointer;
-          transition: all 0.2s;
-        }
-
-        .preference-option:hover {
-          border-color: var(--primary);
-          background: rgba(59, 130, 246, 0.05);
-        }
-
-        .preference-option input[type="radio"] {
-          margin-top: 0.25rem;
-        }
-
-        .preference-option input[type="radio"]:checked + .preference-content .preference-title {
-          color: var(--primary);
-        }
-
-        .preference-content {
-          display: flex;
-          flex-direction: column;
-          gap: 0.125rem;
-        }
-
-        .preference-title {
-          font-weight: 500;
-        }
-
-        .preference-desc {
-          font-size: 0.75rem;
-          color: var(--text-muted);
-        }
-      `}</style>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useAuth } from './context/AuthContext'
 // Public pages
 import Landing from './pages/Public/Landing'
 import Register from './pages/Public/Register'
+import Lookup from './pages/Public/Lookup'
 import Availability from './pages/Public/Availability'
 
 // Admin pages
@@ -39,6 +40,7 @@ function App() {
       {/* Public Routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
+      <Route path="/lookup" element={<Lookup />} />
       <Route path="/availability/:moderatorId" element={<Availability />} />
 
       {/* Admin Routes */}

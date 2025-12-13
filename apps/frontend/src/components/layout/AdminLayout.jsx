@@ -1,10 +1,11 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
-import Footer from '../common/Footer'
 
 export default function AdminLayout() {
   const { admin, logout } = useAuth()
   const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -12,106 +13,109 @@ export default function AdminLayout() {
   }
 
   const navItems = [
-    { to: '/admin', label: 'Dashboard', end: true },
-    { to: '/admin/days', label: 'Event Days' },
-    { to: '/admin/rooms', label: 'Rooms' },
-    { to: '/admin/sessions', label: 'Sessions' },
-    { to: '/admin/moderators', label: 'Moderators' },
-    { to: '/admin/assignments', label: 'Assignments' }
+    { to: '/admin', label: 'Dashboard', icon: '📊', end: true },
+    { to: '/admin/days', label: 'Event Days', icon: '📅' },
+    { to: '/admin/rooms', label: 'Rooms', icon: '🚪' },
+    { to: '/admin/sessions', label: 'Sessions', icon: '📋' },
+    { to: '/admin/moderators', label: 'Moderators', icon: '👥' },
+    { to: '/admin/assignments', label: 'Assignments', icon: '✅' }
   ]
 
   return (
-    <div className="admin-layout">
-      <header className="admin-header">
-        <div className="container flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="logo">MASCOM Admin</h1>
-            <nav className="admin-nav">
-              {navItems.map(item => (
-                <NavLink
-                  key={item.to}
-                  to={item.to}
-                  end={item.end}
-                  className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-                >
-                  {item.label}
-                </NavLink>
-              ))}
-            </nav>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted">{admin?.name}</span>
-            <button onClick={handleLogout} className="btn btn-outline btn-sm">
-              Logout
-            </button>
-          </div>
+    <div className="flex min-h-screen bg-slate-50">
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-white border-b border-slate-200">
+        <button
+          className="p-2 text-2xl bg-transparent border-none"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+        >
+          ☰
+        </button>
+        <span className="font-semibold text-lg">MASCOM Admin</span>
+        <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-semibold">
+          {admin?.name?.charAt(0) || 'A'}
         </div>
       </header>
-      <main className="admin-main">
-        <div className="container">
+
+      {/* Sidebar Overlay */}
+      {sidebarOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside className={`
+        fixed top-0 left-0 bottom-0 z-50 w-64
+        bg-gradient-to-b from-slate-800 to-slate-900 text-white
+        flex flex-col transition-transform duration-300
+        lg:translate-x-0
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+      `}>
+        <div className="p-6 border-b border-white/10">
+          <h1 className="text-xl font-bold text-white m-0">MASCOM</h1>
+          <span className="text-xs text-white/50 uppercase tracking-widest">Admin Panel</span>
+        </div>
+
+        <nav className="flex-1 py-4 overflow-y-auto">
+          {navItems.map(item => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end={item.end}
+              className={({ isActive }) => `
+                flex items-center gap-3 px-6 py-3 text-white/70 no-underline
+                transition-all duration-200 border-l-3 border-transparent
+                hover:bg-white/10 hover:text-white hover:no-underline
+                ${isActive ? 'bg-blue-600/20 text-white border-l-blue-600' : ''}
+              `}
+              onClick={() => setSidebarOpen(false)}
+            >
+              <span className="text-lg w-6 text-center">{item.icon}</span>
+              <span className="text-sm font-medium">{item.label}</span>
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="p-4 border-t border-white/10">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center font-semibold">
+              {admin?.name?.charAt(0) || 'A'}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-medium truncate">{admin?.name}</span>
+              <span className="text-xs text-white/50 truncate">{admin?.email}</span>
+            </div>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full py-2 bg-white/10 border-none rounded-lg text-white text-sm cursor-pointer hover:bg-white/20 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
+        <div className="flex-1 p-4 lg:p-8 mt-16 lg:mt-0">
           <Outlet />
         </div>
+
+        <footer className="p-4 lg:px-8 text-center text-sm text-slate-500 border-t border-slate-200 bg-white">
+          <p className="m-0">
+            &copy; {new Date().getFullYear()} MASCOM.{' '}
+            <a href="https://ahmedammar.dev?mascom" target="_blank" rel="noopener noreferrer" className="text-blue-600">
+              Developer
+            </a>
+            {' | '}
+            <Link to="/" className="text-blue-600">
+              Moderator Portal
+            </Link>
+          </p>
+        </footer>
       </main>
-      <Footer />
-
-      <style>{`
-        .admin-layout {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .admin-main {
-          flex: 1;
-        }
-
-        .admin-header {
-          background: white;
-          border-bottom: 1px solid var(--border);
-          padding: 0.75rem 0;
-          position: sticky;
-          top: 0;
-          z-index: 50;
-        }
-
-        .logo {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: var(--primary);
-        }
-
-        .admin-nav {
-          display: flex;
-          gap: 0.25rem;
-        }
-
-        .nav-link {
-          padding: 0.5rem 0.75rem;
-          font-size: 0.875rem;
-          font-weight: 500;
-          color: var(--text-muted);
-          border-radius: var(--radius);
-          text-decoration: none;
-          transition: all 0.15s ease;
-        }
-
-        .nav-link:hover {
-          color: var(--text);
-          background: var(--bg);
-          text-decoration: none;
-        }
-
-        .nav-link.active {
-          color: var(--primary);
-          background: #eff6ff;
-        }
-
-        @media (max-width: 1024px) {
-          .admin-nav {
-            display: none;
-          }
-        }
-      `}</style>
     </div>
   )
 }

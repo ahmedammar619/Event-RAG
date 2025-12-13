@@ -69,7 +69,11 @@ export default function Assignments() {
     }
   }
 
-  const removeAssignment = async (assignmentId) => {
+  const removeAssignment = async (assignmentId, moderatorName) => {
+    if (!confirm(`Remove ${moderatorName} from this session?`)) {
+      return
+    }
+
     try {
       await assignmentsService.delete(assignmentId)
       toast.success('Assignment removed')
@@ -142,7 +146,7 @@ export default function Assignments() {
 
   return (
     <div>
-      <div className="page-header flex justify-between items-center">
+      <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1>Assignments</h1>
           <p>Manage moderator assignments to sessions</p>
@@ -157,28 +161,28 @@ export default function Assignments() {
         </div>
       </div>
 
-      <div className="grid grid-4 mb-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="stat-card">
           <div className="stat-value">{stats.total}</div>
           <div className="stat-label">Total Sessions</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--success)' }}>{stats.fullyAssigned}</div>
+          <div className="stat-value text-green-600">{stats.fullyAssigned}</div>
           <div className="stat-label">Fully Assigned</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--warning)' }}>{stats.partiallyAssigned}</div>
+          <div className="stat-value text-amber-600">{stats.partiallyAssigned}</div>
           <div className="stat-label">Partially Assigned</div>
         </div>
         <div className="stat-card">
-          <div className="stat-value" style={{ color: 'var(--danger)' }}>{stats.unassigned}</div>
+          <div className="stat-value text-red-600">{stats.unassigned}</div>
           <div className="stat-label">Unassigned</div>
         </div>
       </div>
 
-      <div className="card mb-4">
+      <div className="card mb-6">
         <div className="flex gap-4">
-          <div className="form-group" style={{ marginBottom: 0 }}>
+          <div className="form-group mb-0">
             <label className="form-label">Filter by Day</label>
             <select
               className="form-input"
@@ -202,17 +206,17 @@ export default function Assignments() {
           <p>Add sessions before managing assignments</p>
         </div>
       ) : (
-        <div className="sessions-grid">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {sessions.map(session => (
-            <div key={session.id} className="session-card card">
-              <div className="session-header">
+            <div key={session.id} className="card p-4">
+              <div className="flex justify-between items-start mb-4 pb-4 border-b border-slate-200">
                 <div>
-                  <h3>{session.name}</h3>
-                  <p className="text-sm text-muted">
+                  <h3 className="text-base font-semibold mb-1">{session.name}</h3>
+                  <p className="text-sm text-slate-500">
                     {formatDate(session.date)} | {session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}
                   </p>
                   {session.room_name && (
-                    <p className="text-sm text-muted">{session.room_name}</p>
+                    <p className="text-sm text-slate-500">{session.room_name}</p>
                   )}
                 </div>
                 <span className={`badge ${session.assigned_moderators.length >= session.moderators_needed ? 'badge-success' : session.assigned_moderators.length > 0 ? 'badge-warning' : 'badge-danger'}`}>
@@ -220,16 +224,16 @@ export default function Assignments() {
                 </span>
               </div>
 
-              <div className="assigned-list">
+              <div className="flex flex-col gap-2 mb-3">
                 {session.assigned_moderators.length === 0 ? (
-                  <p className="text-sm text-muted">No moderators assigned</p>
+                  <p className="text-sm text-slate-500">No moderators assigned</p>
                 ) : (
                   session.assigned_moderators.map(mod => (
-                    <div key={mod.id} className="assigned-item">
+                    <div key={mod.id} className="flex justify-between items-center p-2 bg-slate-50 rounded text-sm">
                       <span>{mod.name}</span>
                       <button
-                        className="btn-remove"
-                        onClick={() => removeAssignment(mod.assignment_id)}
+                        className="bg-transparent border-none text-red-500 text-xl cursor-pointer px-1 hover:text-red-700"
+                        onClick={() => removeAssignment(mod.assignment_id, mod.name)}
                         title="Remove assignment"
                       >
                         &times;
@@ -239,9 +243,8 @@ export default function Assignments() {
                 )}
               </div>
               <button
-                className="btn btn-outline btn-sm mt-3"
+                className="btn btn-outline btn-sm w-full"
                 onClick={() => openManualModal(session)}
-                style={{ width: '100%' }}
               >
                 + Assign Moderator
               </button>
@@ -289,14 +292,14 @@ export default function Assignments() {
               </div>
 
               {lastResult && (
-                <div className="result-box">
-                  <h4>Last Result:</h4>
+                <div className="bg-slate-50 rounded-lg p-4 mt-4 text-sm">
+                  <h4 className="font-semibold mb-2">Last Result:</h4>
                   <p>Sessions assigned: {lastResult.sessions_assigned}/{lastResult.total_sessions}</p>
                   <p>Assignments created: {lastResult.total_assignments_created}</p>
                   {lastResult.unassigned_sessions?.length > 0 && (
                     <div>
-                      <p className="text-warning">Unassigned sessions:</p>
-                      <ul>
+                      <p className="text-amber-600 mt-2">Unassigned sessions:</p>
+                      <ul className="mt-1 pl-5 list-disc">
                         {lastResult.unassigned_sessions.map((s, i) => (
                           <li key={i}>{s.name}: {s.reason}</li>
                         ))}
@@ -328,7 +331,7 @@ export default function Assignments() {
             <div className="modal-body">
               <p className="mb-4">
                 <strong>Session:</strong> {selectedSession.name}<br />
-                <span className="text-sm text-muted">
+                <span className="text-sm text-slate-500">
                   {formatDate(selectedSession.date)} | {selectedSession.start_time?.slice(0, 5)} - {selectedSession.end_time?.slice(0, 5)}
                 </span>
               </p>
@@ -350,7 +353,7 @@ export default function Assignments() {
               </div>
 
               {getAvailableModerators().length === 0 && (
-                <p className="text-warning text-sm">All moderators are already assigned to this session.</p>
+                <p className="text-amber-600 text-sm">All moderators are already assigned to this session.</p>
               )}
             </div>
             <div className="modal-footer">
@@ -368,74 +371,6 @@ export default function Assignments() {
           </div>
         </div>
       )}
-
-      <style>{`
-        .sessions-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-          gap: 1rem;
-        }
-
-        .session-card {
-          padding: 1rem;
-        }
-
-        .session-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 1rem;
-          padding-bottom: 1rem;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .session-header h3 {
-          font-size: 1rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .assigned-list {
-          display: flex;
-          flex-direction: column;
-          gap: 0.5rem;
-        }
-
-        .assigned-item {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 0.5rem;
-          background: var(--bg);
-          border-radius: 4px;
-          font-size: 0.875rem;
-        }
-
-        .btn-remove {
-          background: none;
-          border: none;
-          color: var(--danger);
-          font-size: 1.25rem;
-          cursor: pointer;
-          padding: 0 0.25rem;
-        }
-
-        .result-box {
-          background: var(--bg);
-          border-radius: var(--radius);
-          padding: 1rem;
-          margin-top: 1rem;
-          font-size: 0.875rem;
-        }
-
-        .result-box h4 {
-          margin-bottom: 0.5rem;
-        }
-
-        .result-box ul {
-          margin-top: 0.5rem;
-          padding-left: 1.25rem;
-        }
-      `}</style>
     </div>
   )
 }

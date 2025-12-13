@@ -64,8 +64,8 @@ export default function Moderators() {
         <p>{moderators.length} registered volunteers</p>
       </div>
 
-      <div className="moderators-layout">
-        <div className="moderators-list">
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-4">
+        <div>
           {moderators.length === 0 ? (
             <div className="empty-state card">
               <h3>No moderators registered</h3>
@@ -85,7 +85,7 @@ export default function Moderators() {
                 </thead>
                 <tbody>
                   {moderators.map(mod => (
-                    <tr key={mod.id} className={selectedModerator?.id === mod.id ? 'selected' : ''}>
+                    <tr key={mod.id} className={selectedModerator?.id === mod.id ? 'bg-blue-50' : ''}>
                       <td><strong>{mod.name}</strong></td>
                       <td>{mod.email}</td>
                       <td>{parseFloat(mod.total_availability_hours || 0).toFixed(1)}h</td>
@@ -113,28 +113,28 @@ export default function Moderators() {
         </div>
 
         {selectedModerator && (
-          <div className="moderator-detail card">
-            <div className="card-header">
-              <h3 className="card-title">{selectedModerator.name}</h3>
+          <div className="card sticky top-20 h-fit">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">{selectedModerator.name}</h3>
               <button className="btn btn-outline btn-sm" onClick={() => setSelectedModerator(null)}>
                 Close
               </button>
             </div>
 
-            <div className="detail-section">
-              <h4>Contact Info</h4>
+            <div className="mb-6">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Contact Info</h4>
               <p><strong>Email:</strong> {selectedModerator.email}</p>
               <p><strong>Phone:</strong> {selectedModerator.phone || 'Not provided'}</p>
             </div>
 
-            <div className="detail-section">
-              <h4>Availability</h4>
+            <div className="mb-6">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">Availability</h4>
               {selectedModerator.availability?.length === 0 ? (
-                <p className="text-muted">No availability set</p>
+                <p className="text-slate-500">No availability set</p>
               ) : (
-                <ul className="availability-list">
+                <ul className="list-none p-0">
                   {selectedModerator.availability?.map((slot, i) => (
-                    <li key={i}>
+                    <li key={i} className="py-2 border-b border-slate-200 last:border-0">
                       {formatDate(slot.date)}: {slot.start_time.slice(0, 5)} - {slot.end_time.slice(0, 5)}
                     </li>
                   ))}
@@ -142,17 +142,19 @@ export default function Moderators() {
               )}
             </div>
 
-            <div className="detail-section">
-              <h4>Assignments ({selectedModerator.assignments?.length || 0})</h4>
+            <div>
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-2">
+                Assignments ({selectedModerator.assignments?.length || 0})
+              </h4>
               {selectedModerator.assignments?.length === 0 ? (
-                <p className="text-muted">No assignments yet</p>
+                <p className="text-slate-500">No assignments yet</p>
               ) : (
-                <ul className="assignments-list">
+                <ul className="list-none p-0">
                   {selectedModerator.assignments?.map((a, i) => (
-                    <li key={i}>
+                    <li key={i} className="py-2 border-b border-slate-200 last:border-0">
                       <strong>{a.session_name}</strong>
                       <br />
-                      <span className="text-sm text-muted">
+                      <span className="text-sm text-slate-500">
                         {formatDate(a.date)} | {a.start_time.slice(0, 5)} - {a.end_time.slice(0, 5)} | {a.room_name || 'No room'}
                       </span>
                     </li>
@@ -163,60 +165,6 @@ export default function Moderators() {
           </div>
         )}
       </div>
-
-      <style>{`
-        .moderators-layout {
-          display: grid;
-          grid-template-columns: 1fr 350px;
-          gap: 1rem;
-        }
-
-        @media (max-width: 1024px) {
-          .moderators-layout {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .table tr.selected {
-          background: #eff6ff;
-        }
-
-        .moderator-detail {
-          position: sticky;
-          top: 5rem;
-          height: fit-content;
-        }
-
-        .detail-section {
-          margin-bottom: 1.5rem;
-        }
-
-        .detail-section h4 {
-          font-size: 0.875rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-        }
-
-        .availability-list,
-        .assignments-list {
-          list-style: none;
-          padding: 0;
-        }
-
-        .availability-list li,
-        .assignments-list li {
-          padding: 0.5rem 0;
-          border-bottom: 1px solid var(--border);
-        }
-
-        .availability-list li:last-child,
-        .assignments-list li:last-child {
-          border-bottom: none;
-        }
-      `}</style>
     </div>
   )
 }
