@@ -1,7 +1,9 @@
 [build]
 builder = "dockerfile"
+# Railway builds from repo root - Dockerfiles handle monorepo structure
 
-# This file should be in the root, but Railway services should be
-# configured to use the correct root directory:
-# - Frontend service: Root Directory = apps/frontend
-# - Backend service: Root Directory = apps/backend
+# For frontend service, set in Railway dashboard:
+# - Dockerfile Path: apps/frontend/Dockerfile
+
+# For backend service, set in Railway dashboard:
+# - Dockerfile Path: apps/backend/Dockerfile
