@@ -14,9 +14,10 @@ RUN npm install --omit=dev
 # Copy backend source code from monorepo structure
 COPY apps/backend/ ./
 
+# Railway sets PORT dynamically
+ENV PORT=3001
+
 EXPOSE 3001
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3001/health || exit 1
-
+# Start the application
 CMD ["node", "src/app.js"]
