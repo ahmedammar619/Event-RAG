@@ -31,7 +31,7 @@ export default function Dashboard() {
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p>Overview of the MASCOM 2025 moderation system</p>
+        <p>Overview of the MASCON 2025 moderation system</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

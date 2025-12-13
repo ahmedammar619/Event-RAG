@@ -6,39 +6,39 @@ export default async function adminRoutes(fastify, options) {
 
   // POST /api/admin/login
   fastify.post('/login', async (request, reply) => {
-    const { email, password } = request.body;
+    const { username, password } = request.body;
 
-    if (!email || !password) {
-      throw validationError('Email and password are required');
+    if (!username || !password) {
+      throw validationError('Username and password are required');
     }
 
     const result = await db.query(
-      'SELECT * FROM admins WHERE email = $1',
-      [email]
+      'SELECT * FROM admins WHERE username = $1',
+      [username]
     );
 
     if (result.rows.length === 0) {
-      throw unauthorized('Invalid email or password');
+      throw unauthorized('Invalid username or password');
     }
 
     const admin = result.rows[0];
     const validPassword = await bcrypt.compare(password, admin.password_hash);
 
     if (!validPassword) {
-      throw unauthorized('Invalid email or password');
+      throw unauthorized('Invalid username or password');
     }
 
     const token = fastify.jwt.sign({
       id: admin.id,
-      email: admin.email,
+      username: admin.username,
       role: 'admin'
-    });
+    }, { expiresIn: '365d' });
 
     return success({
       token,
       admin: {
         id: admin.id,
-        email: admin.email,
+        username: admin.username,
         name: admin.name
       }
     });
@@ -78,7 +78,7 @@ export default async function adminRoutes(fastify, options) {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     const result = await db.query(
-      'SELECT id, email, name FROM admins WHERE id = $1',
+      'SELECT id, username, name FROM admins WHERE id = $1',
       [request.user.id]
     );
 

@@ -16,17 +16,17 @@ async function seed() {
 
   try {
     // Create default admin
-    const adminEmail = process.env.ADMIN_EMAIL || 'admin@mascom.org';
+    const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
     const passwordHash = await bcrypt.hash(adminPassword, 10);
 
     await pool.query(`
-      INSERT INTO admins (email, password_hash, name)
-      VALUES ($1, $2, $3)
-      ON CONFLICT (email) DO UPDATE SET password_hash = $2
-    `, [adminEmail, passwordHash, 'Admin']);
+      INSERT INTO admins (username, email, password_hash, name)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (username) DO UPDATE SET password_hash = $3
+    `, [adminUsername, 'admin@mascon.org', passwordHash, 'Admin']);
 
-    console.log(`Admin created: ${adminEmail}`);
+    console.log(`Admin created: ${adminUsername}`);
 
     // Clear existing data for fresh seed
     await pool.query('DELETE FROM assignments');
@@ -37,7 +37,7 @@ async function seed() {
     await pool.query('DELETE FROM event_days');
     console.log('Cleared existing data');
 
-    // Create sample event days (example: MASCOM 2025)
+    // Create sample event days (example: MASCON 2025)
     const eventDays = [
       { date: '2025-03-14', start_time: '09:00', end_time: '18:00' },
       { date: '2025-03-15', start_time: '09:00', end_time: '18:00' },
@@ -197,7 +197,7 @@ async function seed() {
     console.log('Seed completed successfully!');
     console.log('');
     console.log('Admin Login:');
-    console.log(`  Email: ${adminEmail}`);
+    console.log(`  Username: ${adminUsername}`);
     console.log(`  Password: ${adminPassword}`);
     console.log('');
     console.log('Sample Data:');

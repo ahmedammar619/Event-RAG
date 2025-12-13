@@ -2,7 +2,7 @@
 
 ## What is the Moderation System?
 
-The Moderation System is a web platform designed for the MASCOM Annual Event in Chicago. It solves the challenge of coordinating volunteer moderators across multiple event sessions with automated scheduling and assignment.
+The Moderation System is a web platform designed for the MASCON Annual Event in Chicago. It solves the challenge of coordinating volunteer moderators across multiple event sessions with automated scheduling and assignment.
 
 ## The Problem
 

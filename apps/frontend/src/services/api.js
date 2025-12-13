@@ -27,7 +27,7 @@ export default api
 
 // Service functions
 export const adminService = {
-  login: (email, password) => api.post('/admin/login', { email, password }),
+  login: (username, password) => api.post('/admin/login', { username, password }),
   getDashboard: () => api.get('/admin/dashboard'),
   getMe: () => api.get('/admin/me')
 }

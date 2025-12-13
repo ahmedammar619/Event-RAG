@@ -93,6 +93,14 @@ const migrations = [
      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'moderators' AND column_name = 'schedule_preference') THEN
        ALTER TABLE moderators ADD COLUMN schedule_preference VARCHAR(20) DEFAULT 'no_preference';
      END IF;
+   END $$`,
+
+  // 010: Add username to admins table
+  `DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'username') THEN
+       ALTER TABLE admins ADD COLUMN username VARCHAR(100) UNIQUE;
+     END IF;
    END $$`
 ];
 

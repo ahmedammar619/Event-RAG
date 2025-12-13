@@ -96,7 +96,7 @@ railway variables set PORT=3001
 railway variables set JWT_SECRET="your-production-secret"
 railway variables set CORS_ORIGIN="https://your-frontend-url.railway.app"
 railway variables set NODE_ENV=production
-railway variables set ADMIN_EMAIL="admin@mascom.org"
+railway variables set ADMIN_EMAIL="admin@mascon.org"
 railway variables set ADMIN_PASSWORD="secure-initial-password"
 ```
 
@@ -305,7 +305,7 @@ server {
 | JWT_SECRET | random-string | JWT signing secret |
 | CORS_ORIGIN | https://frontend.railway.app | Frontend URL |
 | NODE_ENV | production | Environment |
-| ADMIN_EMAIL | admin@mascom.org | Initial admin email |
+| ADMIN_EMAIL | admin@mascon.org | Initial admin email |
 | ADMIN_PASSWORD | secret | Initial admin password |
 
 ### Frontend

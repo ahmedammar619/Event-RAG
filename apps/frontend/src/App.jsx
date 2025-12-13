@@ -1,11 +1,11 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { useModerator } from './context/ModeratorContext'
 
 // Public pages
 import Landing from './pages/Public/Landing'
 import Register from './pages/Public/Register'
 import Lookup from './pages/Public/Lookup'
-import Availability from './pages/Public/Availability'
 
 // Admin pages
 import AdminLogin from './pages/Admin/Login'
@@ -18,17 +18,33 @@ import Moderators from './pages/Admin/Moderators'
 import Assignments from './pages/Admin/Assignments'
 
 // Moderator pages
-import MyAssignments from './pages/Moderator/MyAssignments'
+import ModeratorLayout from './components/layout/ModeratorLayout'
+import Schedule from './pages/Moderator/Schedule'
+import Settings from './pages/Moderator/Settings'
 
-function ProtectedRoute({ children }) {
+function AdminProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
 
   if (loading) {
-    return <div className="loading">Loading...</div>
+    return <div className="loading"><div className="spinner"></div></div>
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/admin/login" replace />
+  }
+
+  return children
+}
+
+function ModeratorProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useModerator()
+
+  if (loading) {
+    return <div className="loading"><div className="spinner"></div></div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/lookup" replace />
   }
 
   return children
@@ -41,16 +57,15 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/lookup" element={<Lookup />} />
-      <Route path="/availability/:moderatorId" element={<Availability />} />
 
       {/* Admin Routes */}
       <Route path="/admin/login" element={<AdminLogin />} />
       <Route
         path="/admin"
         element={
-          <ProtectedRoute>
+          <AdminProtectedRoute>
             <AdminLayout />
-          </ProtectedRoute>
+          </AdminProtectedRoute>
         }
       >
         <Route index element={<Dashboard />} />
@@ -61,8 +76,18 @@ function App() {
         <Route path="assignments" element={<Assignments />} />
       </Route>
 
-      {/* Moderator Routes */}
-      <Route path="/my/assignments/:moderatorId" element={<MyAssignments />} />
+      {/* Moderator Portal Routes */}
+      <Route
+        path="/portal"
+        element={
+          <ModeratorProtectedRoute>
+            <ModeratorLayout />
+          </ModeratorProtectedRoute>
+        }
+      >
+        <Route index element={<Schedule />} />
+        <Route path="availability" element={<Settings />} />
+      </Route>
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

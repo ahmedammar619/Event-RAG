@@ -396,7 +396,7 @@ CORS_ORIGIN=http://localhost:3000
 JWT_SECRET=your-secret-key-here
 
 # Admin Setup (used for initial seeding)
-ADMIN_EMAIL=admin@mascom.org
+ADMIN_EMAIL=admin@mascon.org
 ADMIN_PASSWORD=initial-password
 ```
 

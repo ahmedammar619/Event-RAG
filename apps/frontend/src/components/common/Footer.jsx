@@ -1,42 +1,77 @@
 import { Link, useLocation } from 'react-router-dom'
 
-export default function Footer() {
+export default function Footer({ variant = 'default' }) {
   const currentYear = new Date().getFullYear()
   const location = useLocation()
   const isAdminRoute = location.pathname.startsWith('/admin')
+  const isPortalRoute = location.pathname.startsWith('/portal')
 
-  return (
-    <footer className="bg-slate-800 text-slate-400 py-6 px-4 text-center mt-auto">
-      <div className="flex flex-col gap-3 items-center">
-        <div className="flex gap-6 flex-wrap justify-center">
-          {!isAdminRoute && (
+  const getPortalLink = () => {
+    if (isAdminRoute) {
+      return { to: '/portal', label: 'Moderator Portal' }
+    }
+    if (isPortalRoute) {
+      return { to: '/admin/login', label: 'Admin' }
+    }
+    return { to: '/admin/login', label: 'Admin' }
+  }
+
+  const portalLink = getPortalLink()
+
+  // Dark variant for pages with light backgrounds
+  if (variant === 'dark') {
+    return (
+      <footer className="w-full bg-slate-800 py-4 px-6 mt-auto">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+          <p className="text-slate-400 m-0">
+            &copy; {currentYear} MASCON
+          </p>
+          <div className="flex items-center gap-4">
             <Link
-              to="/admin/login"
-              className="text-blue-400 no-underline text-sm font-medium px-2 py-1 rounded transition-colors hover:bg-blue-400/10 hover:no-underline"
+              to={portalLink.to}
+              className="text-slate-400 no-underline hover:text-white transition-colors"
             >
-              Admin Login
+              {portalLink.label}
             </Link>
-          )}
-          {isAdminRoute && (
-            <Link
-              to="/"
-              className="text-blue-400 no-underline text-sm font-medium px-2 py-1 rounded transition-colors hover:bg-blue-400/10 hover:no-underline"
+            <span className="text-slate-600">|</span>
+            <a
+              href="https://ahmedammar.dev?mascon"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-slate-400 no-underline hover:text-white transition-colors"
             >
-              Moderator Portal
-            </Link>
-          )}
+              Developer
+            </a>
+          </div>
         </div>
-        <p className="m-0 text-sm">
-          &copy; {currentYear} MASCOM.{' '}
+      </footer>
+    )
+  }
+
+  // Light/transparent variant for dark background pages (like landing)
+  return (
+    <footer className="w-full py-4 px-6 mt-auto">
+      <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+        <p className="text-white/60 m-0">
+          &copy; {currentYear} MASCON
+        </p>
+        <div className="flex items-center gap-4">
+          <Link
+            to={portalLink.to}
+            className="text-white/60 no-underline hover:text-white transition-colors"
+          >
+            {portalLink.label}
+          </Link>
+          <span className="text-white/30">|</span>
           <a
-            href="https://ahmedammar.dev?mascom"
+            href="https://ahmedammar.dev?mascon"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-400 font-medium no-underline hover:underline"
+            className="text-white/60 no-underline hover:text-white transition-colors"
           >
             Developer
           </a>
-        </p>
+        </div>
       </div>
     </footer>
   )
