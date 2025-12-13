@@ -1,0 +1,7 @@
+[build]
+builder = "dockerfile"
+
+# This file should be in the root, but Railway services should be
+# configured to use the correct root directory:
+# - Frontend service: Root Directory = apps/frontend
+# - Backend service: Root Directory = apps/backend
