@@ -30,29 +30,32 @@ export default function Landing() {
                 Welcome back, {moderator?.name}!
               </p>
             </div>
-          ) : isAdminLoggedIn ? (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link
-                to="/admin"
-                className="btn btn-lg bg-white text-blue-600 hover:bg-blue-50 no-underline"
-              >
-                Go to Admin Dashboard
-              </Link>
-            </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link
-                to="/register"
-                className="btn btn-lg bg-white text-emerald-600 hover:bg-emerald-50 no-underline"
-              >
-                Register as Volunteer
-              </Link>
-              <Link
-                to="/lookup"
-                className="btn btn-lg border border-white/30 text-white hover:bg-white/10 no-underline"
-              >
-                Already Registered?
-              </Link>
+            <div className="flex flex-col gap-4 justify-center mb-12">
+              {isAdminLoggedIn && (
+                <div className="flex justify-center mb-2">
+                  <Link
+                    to="/admin"
+                    className="btn btn-lg bg-white text-blue-600 hover:bg-blue-50 no-underline"
+                  >
+                    Go to Admin Dashboard
+                  </Link>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/register"
+                  className="btn btn-lg bg-white text-emerald-600 hover:bg-emerald-50 no-underline"
+                >
+                  Register as Volunteer
+                </Link>
+                <Link
+                  to="/lookup"
+                  className="btn btn-lg border border-white/30 text-white hover:bg-white/10 no-underline"
+                >
+                  Already Registered?
+                </Link>
+              </div>
             </div>
           )}
 
