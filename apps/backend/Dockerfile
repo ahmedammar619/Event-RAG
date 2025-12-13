@@ -5,12 +5,14 @@ WORKDIR /app
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy package files and install dependencies
-COPY package*.json ./
+# Copy backend package files from monorepo structure
+COPY apps/backend/package*.json ./
+
+# Install production dependencies only
 RUN npm ci --omit=dev
 
-# Copy source code
-COPY . .
+# Copy backend source code from monorepo structure
+COPY apps/backend/ ./
 
 EXPOSE 3001
 

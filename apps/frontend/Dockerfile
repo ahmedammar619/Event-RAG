@@ -2,17 +2,19 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy and install dependencies
-COPY package*.json ./
+# Copy frontend package files from monorepo structure
+COPY apps/frontend/package*.json ./
+
+# Install ALL dependencies including devDependencies (vite is a devDep)
 RUN npm install --include=dev
 
-# Copy source code
-COPY . .
+# Copy frontend source code from monorepo structure
+COPY apps/frontend/ ./
 
 # Build the app
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
-RUN npx vite build
+RUN npm run build
 
 # Production image
 FROM nginx:alpine
@@ -24,7 +26,7 @@ RUN apk add --no-cache curl
 COPY --from=builder /app/dist /usr/share/nginx/html
 
 # Copy nginx config
-COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Set permissions
 RUN chmod -R 755 /usr/share/nginx/html
