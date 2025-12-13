@@ -1,7 +1,10 @@
 import axios from 'axios'
 
+// Remove trailing slash from API URL if present
+const apiUrl = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(/\/+$/, '')
+
 const api = axios.create({
-  baseURL: (import.meta.env.VITE_API_URL || 'http://localhost:3001') + '/api',
+  baseURL: `${apiUrl}/api`,
   headers: {
     'Content-Type': 'application/json'
   }
