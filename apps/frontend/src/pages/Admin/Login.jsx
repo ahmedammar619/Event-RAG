@@ -32,15 +32,17 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="login-page">
-      <div className="login-container">
-        <div className="login-header">
-          <Link to="/" className="back-link">&larr; Back to Home</Link>
-          <h1>Admin Login</h1>
-          <p>Sign in to access the admin dashboard</p>
+    <div className="min-h-screen flex flex-col items-center justify-center p-8 bg-slate-50">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link to="/" className="inline-block mb-4 text-slate-500 text-sm hover:text-slate-700">
+            &larr; Back to Home
+          </Link>
+          <h1 className="text-2xl font-semibold mb-2">Admin Login</h1>
+          <p className="text-slate-500">Sign in to access the admin dashboard</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="login-form card">
+        <form onSubmit={handleSubmit} className="card p-8">
           <div className="form-group">
             <label className="form-label">Email</label>
             <input
@@ -67,57 +69,14 @@ export default function AdminLogin() {
 
           <button
             type="submit"
-            className="btn btn-primary btn-lg"
+            className="btn btn-primary btn-lg w-full"
             disabled={loading}
-            style={{ width: '100%' }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
       </div>
       <Footer />
-
-      <style>{`
-        .login-page {
-          min-height: 100vh;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 2rem;
-          background: var(--bg);
-        }
-
-        .login-container {
-          width: 100%;
-          max-width: 400px;
-        }
-
-        .login-header {
-          text-align: center;
-          margin-bottom: 2rem;
-        }
-
-        .back-link {
-          display: inline-block;
-          margin-bottom: 1rem;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-        }
-
-        .login-header h1 {
-          font-size: 1.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .login-header p {
-          color: var(--text-muted);
-        }
-
-        .login-form {
-          padding: 2rem;
-        }
-      `}</style>
     </div>
   )
 }

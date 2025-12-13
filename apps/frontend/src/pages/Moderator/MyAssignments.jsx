@@ -70,12 +70,14 @@ export default function MyAssignments() {
   }
 
   return (
-    <div className="my-assignments-page">
-      <div className="my-assignments-container">
-        <div className="my-assignments-header">
-          <Link to="/" className="back-link">&larr; Back to Home</Link>
-          <h1>My Assignments</h1>
-          <p>Hello, <strong>{moderator?.name}</strong>! Here are your assigned sessions.</p>
+    <div className="min-h-screen p-4 md:p-8 pb-20 bg-slate-50">
+      <div className="max-w-2xl mx-auto">
+        <div className="mb-8">
+          <Link to="/" className="inline-block mb-4 text-slate-500 text-sm hover:text-slate-700">
+            &larr; Back to Home
+          </Link>
+          <h1 className="text-2xl font-semibold mb-2">My Assignments</h1>
+          <p className="text-slate-500">Hello, <strong className="text-slate-800">{moderator?.name}</strong>! Here are your assigned sessions.</p>
         </div>
 
         {assignments.length === 0 ? (
@@ -87,29 +89,31 @@ export default function MyAssignments() {
             </Link>
           </div>
         ) : (
-          <div className="assignments-list">
+          <div className="flex flex-col gap-8">
             {Object.entries(groupedAssignments).map(([date, dayAssignments]) => (
-              <div key={date} className="day-group">
-                <h2 className="day-title">{formatDate(date)}</h2>
-                <div className="day-sessions">
+              <div key={date}>
+                <h2 className="text-lg font-semibold mb-4 pb-2 border-b-2 border-blue-600">
+                  {formatDate(date)}
+                </h2>
+                <div className="flex flex-col gap-4">
                   {dayAssignments.map(a => (
-                    <div key={a.id} className="session-card card">
-                      <div className="session-info">
-                        <h3>{a.session_name}</h3>
-                        <p className="session-time">
+                    <div key={a.id} className="card flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 p-5">
+                      <div>
+                        <h3 className="text-lg font-semibold mb-1">{a.session_name}</h3>
+                        <p className="text-blue-600 font-medium">
                           {a.start_time.slice(0, 5)} - {a.end_time.slice(0, 5)}
                         </p>
                         {a.room_name && (
-                          <p className="session-room">{a.room_name}</p>
+                          <p className="text-slate-500 text-sm">{a.room_name}</p>
                         )}
                       </div>
 
-                      <div className="headcount-section">
+                      <div className="sm:text-right">
                         {editingHeadcount === a.session_id ? (
-                          <div className="headcount-edit">
+                          <div className="flex flex-wrap gap-2">
                             <input
                               type="number"
-                              className="form-input"
+                              className="form-input w-24"
                               placeholder="Enter headcount"
                               value={headcountValue}
                               onChange={e => setHeadcountValue(e.target.value)}
@@ -129,9 +133,9 @@ export default function MyAssignments() {
                             </button>
                           </div>
                         ) : (
-                          <div className="headcount-display">
-                            <span className="headcount-label">Headcount:</span>
-                            <span className="headcount-value">
+                          <div className="flex items-center gap-2 sm:justify-end">
+                            <span className="text-slate-500 text-sm">Headcount:</span>
+                            <span className="text-lg font-semibold">
                               {a.headcount || 'Not set'}
                             </span>
                             <button
@@ -154,134 +158,13 @@ export default function MyAssignments() {
           </div>
         )}
 
-        <div className="actions-footer">
+        <div className="mt-8 text-center">
           <Link to={`/availability/${moderatorId}`} className="btn btn-outline">
             Update Availability
           </Link>
         </div>
       </div>
       <Footer />
-
-      <style>{`
-        .my-assignments-page {
-          min-height: 100vh;
-          padding: 2rem;
-          padding-bottom: 5rem;
-          background: var(--bg);
-        }
-
-        .my-assignments-container {
-          max-width: 700px;
-          margin: 0 auto;
-        }
-
-        .my-assignments-header {
-          margin-bottom: 2rem;
-        }
-
-        .back-link {
-          display: inline-block;
-          margin-bottom: 1rem;
-          color: var(--text-muted);
-          font-size: 0.875rem;
-        }
-
-        .my-assignments-header h1 {
-          font-size: 1.75rem;
-          margin-bottom: 0.5rem;
-        }
-
-        .day-group {
-          margin-bottom: 2rem;
-        }
-
-        .day-title {
-          font-size: 1.125rem;
-          font-weight: 600;
-          margin-bottom: 1rem;
-          padding-bottom: 0.5rem;
-          border-bottom: 2px solid var(--primary);
-        }
-
-        .day-sessions {
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-        }
-
-        .session-card {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          padding: 1.25rem;
-        }
-
-        .session-info h3 {
-          font-size: 1.125rem;
-          margin-bottom: 0.25rem;
-        }
-
-        .session-time {
-          font-size: 1rem;
-          color: var(--primary);
-          font-weight: 500;
-        }
-
-        .session-room {
-          font-size: 0.875rem;
-          color: var(--text-muted);
-        }
-
-        .headcount-section {
-          text-align: right;
-        }
-
-        .headcount-display {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .headcount-label {
-          font-size: 0.875rem;
-          color: var(--text-muted);
-        }
-
-        .headcount-value {
-          font-size: 1.125rem;
-          font-weight: 600;
-        }
-
-        .headcount-edit {
-          display: flex;
-          gap: 0.5rem;
-        }
-
-        .headcount-edit input {
-          width: 100px;
-        }
-
-        .actions-footer {
-          margin-top: 2rem;
-          text-align: center;
-        }
-
-        @media (max-width: 640px) {
-          .session-card {
-            flex-direction: column;
-            gap: 1rem;
-          }
-
-          .headcount-section {
-            text-align: left;
-            width: 100%;
-          }
-
-          .headcount-edit {
-            flex-wrap: wrap;
-          }
-        }
-      `}</style>
     </div>
   )
 }

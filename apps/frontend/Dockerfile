@@ -8,7 +8,7 @@ COPY package*.json ./
 # Install dependencies
 RUN npm install
 
-# Copy source code
+# Copy source code (including nginx.conf)
 COPY . .
 
 # Build the app
@@ -22,12 +22,14 @@ FROM nginx:alpine
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Copy built files and set permissions
+# Copy built files from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
-RUN chmod -R 755 /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx config from builder (fixes Railway build context issue)
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
+
+# Set permissions
+RUN chmod -R 755 /usr/share/nginx/html
 
 # Expose port
 EXPOSE 3000
