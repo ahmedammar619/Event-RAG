@@ -14,7 +14,7 @@ const fastify = Fastify({
 
 // Register plugins
 await fastify.register(cors, {
-  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+  origin: true,
   credentials: true
 });
 
