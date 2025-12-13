@@ -116,7 +116,8 @@ export default function Sessions() {
 
   const formatDate = (dateStr) => {
     if (!dateStr) return ''
-    const date = new Date(dateStr + 'T00:00:00')
+    const dateOnly = dateStr.split('T')[0]
+    const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   }
 

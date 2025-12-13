@@ -11,7 +11,8 @@ export default function Register() {
   const [form, setForm] = useState({
     name: '',
     email: '',
-    phone: ''
+    phone: '',
+    schedule_preference: 'no_preference'
   })
   const [errors, setErrors] = useState({})
 
@@ -109,6 +110,52 @@ export default function Register() {
             {errors.phone && <p className="form-error">{errors.phone}</p>}
           </div>
 
+          <div className="form-group">
+            <label className="form-label">Schedule Preference</label>
+            <p className="form-hint">How would you prefer your sessions to be scheduled?</p>
+            <div className="preference-options">
+              <label className="preference-option">
+                <input
+                  type="radio"
+                  name="schedule_preference"
+                  value="consecutive"
+                  checked={form.schedule_preference === 'consecutive'}
+                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
+                />
+                <div className="preference-content">
+                  <span className="preference-title">Back-to-back</span>
+                  <span className="preference-desc">I prefer sessions one after another</span>
+                </div>
+              </label>
+              <label className="preference-option">
+                <input
+                  type="radio"
+                  name="schedule_preference"
+                  value="spread_out"
+                  checked={form.schedule_preference === 'spread_out'}
+                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
+                />
+                <div className="preference-content">
+                  <span className="preference-title">Spread out</span>
+                  <span className="preference-desc">I prefer breaks between sessions</span>
+                </div>
+              </label>
+              <label className="preference-option">
+                <input
+                  type="radio"
+                  name="schedule_preference"
+                  value="no_preference"
+                  checked={form.schedule_preference === 'no_preference'}
+                  onChange={e => setForm({ ...form, schedule_preference: e.target.value })}
+                />
+                <div className="preference-content">
+                  <span className="preference-title">No preference</span>
+                  <span className="preference-desc">I'm flexible with scheduling</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
           <button type="submit" className="btn btn-primary btn-lg" disabled={loading} style={{ width: '100%' }}>
             {loading ? 'Registering...' : 'Continue to Availability'}
           </button>
@@ -165,6 +212,57 @@ export default function Register() {
           text-align: center;
           margin-top: 1.5rem;
           font-size: 0.875rem;
+          color: var(--text-muted);
+        }
+
+        .form-hint {
+          font-size: 0.875rem;
+          color: var(--text-muted);
+          margin-bottom: 0.75rem;
+        }
+
+        .preference-options {
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+
+        .preference-option {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 0.75rem;
+          border: 1px solid var(--border);
+          border-radius: var(--radius);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .preference-option:hover {
+          border-color: var(--primary);
+          background: rgba(59, 130, 246, 0.05);
+        }
+
+        .preference-option input[type="radio"] {
+          margin-top: 0.25rem;
+        }
+
+        .preference-option input[type="radio"]:checked + .preference-content .preference-title {
+          color: var(--primary);
+        }
+
+        .preference-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+        }
+
+        .preference-title {
+          font-weight: 500;
+        }
+
+        .preference-desc {
+          font-size: 0.75rem;
           color: var(--text-muted);
         }
       `}</style>

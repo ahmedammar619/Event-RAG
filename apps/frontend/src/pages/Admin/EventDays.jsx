@@ -33,7 +33,7 @@ export default function EventDays() {
     if (day) {
       setEditingDay(day)
       setForm({
-        date: day.date,
+        date: day.date.split('T')[0],
         start_time: day.start_time.slice(0, 5),
         end_time: day.end_time.slice(0, 5)
       })
@@ -74,7 +74,8 @@ export default function EventDays() {
   }
 
   const formatDate = (dateStr) => {
-    const date = new Date(dateStr + 'T00:00:00')
+    const dateOnly = dateStr.split('T')[0]
+    const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
       month: 'long',

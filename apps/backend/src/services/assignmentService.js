@@ -90,10 +90,14 @@ export async function autoAssign(db, options = {}) {
     }
 
     // Score and sort moderators
-    const scored = available.map(mod => ({
-      moderator: mod,
-      score: calculateScore(mod, session, assignmentCounts[mod.id] || 0)
-    }));
+    const scored = [];
+    for (const mod of available) {
+      const adjacentInfo = await getAdjacentAssignments(
+        db, mod.id, session.event_day_id, session.start_time, session.end_time
+      );
+      const score = calculateScore(mod, session, assignmentCounts[mod.id] || 0, adjacentInfo);
+      scored.push({ moderator: mod, score });
+    }
 
     scored.sort((a, b) => b.score - a.score);
 
@@ -174,7 +178,45 @@ async function findAvailableModerators(db, eventDayId, startTime, endTime, sessi
   return result.rows;
 }
 
-function calculateScore(moderator, session, existingAssignments) {
+// Get the closest assignment times for a moderator on a given day
+async function getAdjacentAssignments(db, moderatorId, eventDayId, sessionStartTime, sessionEndTime) {
+  const result = await db.query(`
+    SELECT s.start_time, s.end_time
+    FROM assignments a
+    JOIN sessions s ON a.session_id = s.id
+    WHERE a.moderator_id = $1 AND s.event_day_id = $2
+    ORDER BY s.start_time
+  `, [moderatorId, eventDayId]);
+
+  const assignments = result.rows;
+
+  let hasAdjacentBefore = false;
+  let hasAdjacentAfter = false;
+  let hasGap = false;
+
+  for (const assign of assignments) {
+    // Check if there's an assignment that ends when this session starts (or within 30 min)
+    const assignEnd = assign.end_time;
+    const assignStart = assign.start_time;
+
+    // Adjacent before: assignment ends at or near session start
+    if (assignEnd >= sessionStartTime.slice(0, 5) && assignEnd <= sessionStartTime) {
+      hasAdjacentBefore = true;
+    }
+    // Adjacent after: assignment starts at or near session end
+    if (assignStart >= sessionEndTime.slice(0, 5) && assignStart <= sessionEndTime) {
+      hasAdjacentAfter = true;
+    }
+    // Has gap: there's an assignment on the same day but not adjacent
+    if (assignEnd < sessionStartTime || assignStart > sessionEndTime) {
+      hasGap = true;
+    }
+  }
+
+  return { hasAdjacentBefore, hasAdjacentAfter, hasGap, assignmentCount: assignments.length };
+}
+
+function calculateScore(moderator, session, existingAssignments, adjacentInfo) {
   // Factor 1: Assignment balance (fewer = better)
   // Scale: 0-100 where 0 assignments = 100, 10+ assignments = 0
   const assignmentScore = Math.max(0, 100 - (existingAssignments * 10));
@@ -184,14 +226,44 @@ function calculateScore(moderator, session, existingAssignments) {
   const totalHours = parseFloat(moderator.total_availability_hours) || 0;
   const availabilityScore = Math.min(100, (totalHours / 12) * 100);
 
-  // Factor 3: Random tiebreaker to ensure fairness
+  // Factor 3: Schedule preference
+  // Scale: 0-100 based on how well this assignment matches their preference
+  let preferenceScore = 50; // neutral default
+
+  const preference = moderator.schedule_preference || 'no_preference';
+  const { hasAdjacentBefore, hasAdjacentAfter, hasGap, assignmentCount } = adjacentInfo;
+  const hasAdjacent = hasAdjacentBefore || hasAdjacentAfter;
+
+  if (preference === 'consecutive') {
+    // Prefers back-to-back sessions
+    if (assignmentCount === 0) {
+      preferenceScore = 50; // First assignment, neutral
+    } else if (hasAdjacent) {
+      preferenceScore = 100; // Great! Adjacent to existing assignment
+    } else {
+      preferenceScore = 20; // Not ideal, would create a gap
+    }
+  } else if (preference === 'spread_out') {
+    // Prefers breaks between sessions
+    if (assignmentCount === 0) {
+      preferenceScore = 50; // First assignment, neutral
+    } else if (hasAdjacent) {
+      preferenceScore = 20; // Not ideal, back-to-back
+    } else {
+      preferenceScore = 100; // Great! Has a gap
+    }
+  }
+  // For 'no_preference', keep the neutral score of 50
+
+  // Factor 4: Random tiebreaker to ensure fairness
   const randomScore = Math.random() * 100;
 
   // Weighted combination
   const finalScore =
-    (assignmentScore * 0.5) +    // 50% weight on balance
-    (availabilityScore * 0.3) +  // 30% weight on availability
-    (randomScore * 0.2);          // 20% random for fairness
+    (assignmentScore * 0.4) +     // 40% weight on balance
+    (availabilityScore * 0.2) +   // 20% weight on availability
+    (preferenceScore * 0.25) +    // 25% weight on preference
+    (randomScore * 0.15);          // 15% random for fairness
 
   return finalScore;
 }
