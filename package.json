@@ -1,0 +1,29 @@
+{
+  "name": "moderation-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx nx run-many --target=dev --all --parallel",
+    "dev:frontend": "npx nx run frontend:dev",
+    "dev:backend": "npx nx run backend:dev",
+    "build": "npx nx run-many --target=build --all",
+    "build:frontend": "npx nx run frontend:build",
+    "build:backend": "npx nx run backend:build",
+    "start:backend": "npx nx run backend:start",
+    "migrate": "node apps/backend/scripts/migrate.js",
+    "seed": "node apps/backend/scripts/seed.js",
+    "lint": "npx nx run-many --target=lint --all",
+    "docker:build": "docker-compose build",
+    "docker:up": "docker-compose up",
+    "docker:down": "docker-compose down"
+  },
+  "workspaces": [
+    "apps/*"
+  ],
+  "devDependencies": {
+    "nx": "^17.2.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
