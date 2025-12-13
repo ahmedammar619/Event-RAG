@@ -53,7 +53,7 @@ Authenticate admin user.
 **Request:**
 ```json
 {
-  "email": "admin@mascom.org",
+  "email": "admin@mascon.org",
   "password": "password123"
 }
 ```
@@ -66,7 +66,7 @@ Authenticate admin user.
     "token": "eyJhbGciOiJIUzI1NiIs...",
     "admin": {
       "id": 1,
-      "email": "admin@mascom.org",
+      "email": "admin@mascon.org",
       "name": "Admin User"
     }
   }

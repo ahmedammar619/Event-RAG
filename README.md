@@ -1,6 +1,6 @@
 # Moderation System
 
-Moderation System Platform for MASCOM Annual Event in Chicago. This platform helps coordinate volunteer moderators across event sessions with automated scheduling and assignment.
+Moderation System Platform for MASCON Annual Event in Chicago. This platform helps coordinate volunteer moderators across event sessions with automated scheduling and assignment.
 
 ## Table of Contents
 
@@ -496,7 +496,7 @@ CORS_ORIGIN=http://localhost:3000
 JWT_SECRET=your-secret-key-here
 
 # Admin Setup
-ADMIN_EMAIL=admin@mascom.org
+ADMIN_EMAIL=admin@mascon.org
 ADMIN_PASSWORD=initial-password
 ```
 
@@ -556,4 +556,4 @@ Apache License 2.0 - See [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For questions about the MASCOM Annual Event moderation system, contact the event organizers.
+For questions about the MASCON Annual Event moderation system, contact the event organizers.

@@ -99,7 +99,7 @@ Day 3: March 17, 2025 | 10:00 - 15:00
 1. Admin copies the registration URL: `https://app.com/register`
 2. Shares via email, WhatsApp, or event communication channels
 3. Message example:
-   > "Assalamu Alaikum! Please register as a volunteer moderator for MASCOM 2025 at: [link]. You'll be asked to provide your availability."
+   > "Assalamu Alaikum! Please register as a volunteer moderator for MASCON 2025 at: [link]. You'll be asked to provide your availability."
 
 ---
 
