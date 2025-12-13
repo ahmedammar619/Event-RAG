@@ -6,6 +6,9 @@ import { dbPlugin } from './plugins/db.js';
 import { authPlugin } from './plugins/auth.js';
 import routes from './routes/index.js';
 
+// Load .env file (try multiple paths for different environments)
+dotenv.config();
+dotenv.config({ path: '.env' });
 dotenv.config({ path: '../../.env' });
 
 const fastify = Fastify({
