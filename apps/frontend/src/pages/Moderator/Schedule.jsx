@@ -146,7 +146,7 @@ export default function Schedule() {
           <p className="text-slate-500 text-sm mb-6">
             Set your availability so the admin can assign you to sessions.
           </p>
-          <Link to="/portal/availability" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
+          <Link to="/portal/availability" className="inline-flex items-center gap-2 bg-teal-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-teal-700 transition-colors">
             Set Availability
           </Link>
         </div>
@@ -158,7 +158,7 @@ export default function Schedule() {
               <div key={date}>
                 {/* Date Header */}
                 <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+                  <div className="w-10 h-10 bg-teal-600 rounded-xl flex items-center justify-center">
                     <span className="text-white font-bold text-sm">
                       {new Date(date + 'T00:00:00').getDate()}
                     </span>
@@ -170,7 +170,7 @@ export default function Schedule() {
                 </div>
 
                 {/* Sessions */}
-                <div className="space-y-3 ml-2 pl-4 border-l-2 border-emerald-200">
+                <div className="space-y-3 ml-2 pl-4 border-l-2 border-teal-200">
                   {sessions.map(a => {
                     const headcount = getHeadcountInfo(a)
                     const isEditing = editingId === a.session_id
@@ -183,7 +183,7 @@ export default function Schedule() {
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-slate-900 leading-tight">{a.session_name}</h3>
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm">
-                                <span className="text-emerald-600 font-medium">
+                                <span className="text-teal-600 font-medium">
                                   {formatTime(a.start_time)} - {formatTime(a.end_time)}
                                 </span>
                                 {a.room_name && (
@@ -212,7 +212,7 @@ export default function Schedule() {
                                   </>
                                 ) : (
                                   <>
-                                    <div className="text-sm font-bold text-emerald-600">+ Add</div>
+                                    <div className="text-sm font-bold text-teal-600">+ Add</div>
                                     <div className="text-[10px] text-slate-500">Headcount</div>
                                   </>
                                 )}
@@ -238,7 +238,7 @@ export default function Schedule() {
                                 onClick={() => { setInputMode('percentage'); setHeadcountValue('') }}
                                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                                   inputMode === 'percentage'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-teal-600 text-white'
                                     : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
                                 }`}
                               >
@@ -248,7 +248,7 @@ export default function Schedule() {
                                 onClick={() => { setInputMode('exact'); setHeadcountValue('') }}
                                 className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                                   inputMode === 'exact'
-                                    ? 'bg-emerald-600 text-white'
+                                    ? 'bg-teal-600 text-white'
                                     : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
                                 }`}
                               >
@@ -261,7 +261,7 @@ export default function Schedule() {
                                 <input
                                   type="number"
                                   inputMode="numeric"
-                                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-lg font-semibold text-center focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-lg font-semibold text-center focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                   placeholder={inputMode === 'percentage' ? '0-100' : 'Count'}
                                   value={headcountValue}
                                   onChange={e => setHeadcountValue(e.target.value)}
@@ -291,7 +291,7 @@ export default function Schedule() {
                               <button
                                 onClick={() => saveHeadcount(a.session_id)}
                                 disabled={saving || !headcountValue}
-                                className="flex-1 py-2.5 px-4 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 py-2.5 px-4 bg-teal-600 text-white rounded-xl font-medium hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                               >
                                 {saving ? 'Saving...' : 'Save'}
                               </button>

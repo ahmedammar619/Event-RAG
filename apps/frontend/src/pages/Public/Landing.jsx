@@ -8,11 +8,16 @@ export default function Landing() {
   const { isAuthenticated: isAdminLoggedIn } = useAuth()
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-800 to-emerald-600">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-800 to-teal-600">
       <div className="flex-1 flex flex-col items-center justify-center p-8">
         <div className="text-center max-w-3xl">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">MASCON 2025</h1>
-          <h2 className="text-xl md:text-2xl font-normal text-white/90 mb-6">Moderation System</h2>
+          <div className="flex items-center justify-center gap-4 mb-4">
+            <img src="/logo.png" alt="MASCON" className="w-32 h-32 md:w-40 md:h-40 object-contain" />
+            <div className="text-left">
+              <h1 className="text-4xl md:text-5xl font-bold text-white m-0">MASCON 2025</h1>
+              <h2 className="text-xl md:text-2xl font-normal text-white/90 m-0">Moderation System</h2>
+            </div>
+          </div>
           <p className="text-lg text-white/80 mb-8 leading-relaxed">
             Help us coordinate volunteer moderators for the annual MASCON event in Chicago.
             Register as a volunteer and input your availability.
@@ -22,7 +27,7 @@ export default function Landing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link
                 to="/portal"
-                className="btn btn-lg bg-white text-emerald-600 hover:bg-emerald-50 no-underline"
+                className="btn btn-lg bg-white text-teal-600 hover:bg-teal-50 no-underline"
               >
                 Go to My Portal
               </Link>
@@ -45,7 +50,7 @@ export default function Landing() {
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link
                   to="/register"
-                  className="btn btn-lg bg-white text-emerald-600 hover:bg-emerald-50 no-underline"
+                  className="btn btn-lg bg-white text-teal-600 hover:bg-teal-50 no-underline"
                 >
                   Register as Volunteer
                 </Link>
