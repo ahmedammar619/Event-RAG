@@ -43,7 +43,7 @@ export default async function sessionsRoutes(fastify, options) {
       query += ` WHERE ${conditions.join(' AND ')}`;
     }
 
-    query += ` GROUP BY s.id, r.name, ed.date ORDER BY ed.date, s.start_time`;
+    query += ` GROUP BY s.id, r.name, r.capacity, ed.date ORDER BY ed.date, s.start_time`;
 
     const result = await db.query(query, params);
 
