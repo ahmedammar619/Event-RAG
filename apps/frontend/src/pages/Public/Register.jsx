@@ -16,6 +16,26 @@ export default function Register() {
   })
   const [errors, setErrors] = useState({})
 
+  // Format phone number as user types: (XXX) XXX-XXXX
+  const formatPhoneNumber = (value) => {
+    // Remove all non-digits
+    const digits = value.replace(/\D/g, '')
+
+    // Limit to 10 digits
+    const limited = digits.slice(0, 10)
+
+    // Format based on length
+    if (limited.length === 0) return ''
+    if (limited.length <= 3) return `(${limited}`
+    if (limited.length <= 6) return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+    return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+  }
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    setForm({ ...form, phone: formatted })
+  }
+
   // If already logged in, redirect to portal
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -30,7 +50,14 @@ export default function Register() {
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = 'Invalid email format'
     }
-    if (!form.phone.trim()) newErrors.phone = 'Phone number is required'
+    if (!form.phone.trim()) {
+      newErrors.phone = 'Phone number is required'
+    } else {
+      const digits = form.phone.replace(/\D/g, '')
+      if (digits.length !== 10) {
+        newErrors.phone = 'Please enter a valid 10-digit US phone number'
+      }
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -104,9 +131,9 @@ export default function Register() {
               <input
                 type="tel"
                 className="form-input"
-                placeholder="Enter your phone number"
+                placeholder="(555) 123-4567"
                 value={form.phone}
-                onChange={e => setForm({ ...form, phone: e.target.value })}
+                onChange={handlePhoneChange}
               />
               {errors.phone && <p className="form-error">{errors.phone}</p>}
             </div>

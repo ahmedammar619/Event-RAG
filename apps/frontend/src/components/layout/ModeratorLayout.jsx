@@ -38,7 +38,7 @@ export default function ModeratorLayout() {
       <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-blue-700 to-blue-900 text-white flex-col z-50">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <img src="/logo.png?1" alt="Vewoz" className="w-12 h-12 object-contain" />
+            <img src="/logo.png?1" alt="Vewoz" className="w-16 h-16 object-contain" />
             <div>
               <h1 className="text-xl font-bold text-white m-0">Vewoz</h1>
               <span className="text-xs text-white/50 uppercase tracking-widest">MASCON Portal</span>
@@ -88,7 +88,7 @@ export default function ModeratorLayout() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-blue-700 text-white px-4 py-3 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png?1" alt="Vewoz" className="w-8 h-8 object-contain" />
+            <img src="/logo.png?1" alt="Vewoz" className="w-16 h-16 object-contain" />
             <h1 className="font-bold text-lg m-0">Vewoz | MASCON</h1>
           </div>
           <button
