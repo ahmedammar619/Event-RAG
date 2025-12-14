@@ -149,6 +149,7 @@ CREATE TABLE sessions (
     start_time TIME NOT NULL,
     end_time TIME NOT NULL,
     headcount INTEGER DEFAULT 0,
+    headcount_percentage INTEGER,
     moderators_needed INTEGER DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -162,9 +163,12 @@ CREATE TABLE sessions (
 | room_id | INTEGER | FK, NULLABLE | Which room |
 | start_time | TIME | NOT NULL | Session start |
 | end_time | TIME | NOT NULL | Session end |
-| headcount | INTEGER | DEFAULT 0 | Actual attendance |
+| headcount | INTEGER | DEFAULT 0 | Exact attendance count |
+| headcount_percentage | INTEGER | NULLABLE | Attendance as % of room capacity (estimate) |
 | moderators_needed | INTEGER | DEFAULT 1 | Required moderators |
 | created_at | TIMESTAMP | DEFAULT NOW | Creation timestamp |
+
+**Note:** Either `headcount` or `headcount_percentage` is set, not both. When percentage is used, the estimated count is calculated as `(percentage/100) * room.capacity`.
 
 ### moderators
 
@@ -176,6 +180,7 @@ CREATE TABLE moderators (
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
     phone VARCHAR(50),
+    schedule_preference VARCHAR(20) DEFAULT 'no_preference',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
@@ -186,6 +191,7 @@ CREATE TABLE moderators (
 | name | VARCHAR(255) | NOT NULL | Full name |
 | email | VARCHAR(255) | UNIQUE, NOT NULL | Contact email |
 | phone | VARCHAR(50) | NULLABLE | Phone number |
+| schedule_preference | VARCHAR(20) | DEFAULT 'no_preference' | 'consecutive', 'spread_out', or 'no_preference' |
 | created_at | TIMESTAMP | DEFAULT NOW | Registration time |
 
 ### availability

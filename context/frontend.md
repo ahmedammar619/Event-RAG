@@ -117,11 +117,14 @@ apps/frontend/
     <Route path="assignments" element={<Assignments />} />
   </Route>
 
-  {/* Moderator Routes */}
-  <Route path="/my" element={<ModeratorLayout />}>
-    <Route path="assignments" element={<MyAssignments />} />
-    <Route path="headcount/:sessionId" element={<UpdateHeadcount />} />
+  {/* Moderator Portal Routes */}
+  <Route path="/portal" element={<ModeratorLayout />}>
+    <Route index element={<Schedule />} />
+    <Route path="availability" element={<Settings />} />
   </Route>
+
+  {/* Moderator Lookup/Login */}
+  <Route path="/lookup" element={<ModeratorLookup />} />
 </Routes>
 ```
 
@@ -184,18 +187,39 @@ apps/frontend/
 - Clear assignments button
 - Export to CSV/PDF
 
-### Moderator Pages
+### Moderator Portal
 
-#### My Assignments (`/my/assignments`)
-- List of assigned sessions
-- Grouped by day
-- Shows: session name, time, room
-- Link to update headcount
+The moderator portal uses a sidebar layout with two main tabs.
 
-#### Update Headcount (`/my/headcount/:sessionId`)
-- Session details
-- Input field for headcount
-- Submit button
+#### Schedule (`/portal`)
+- List of assigned sessions grouped by date
+- Each session shows: name, time (12-hour format), room
+- Headcount update inline:
+  - Choose between "% Full" (percentage) or "Exact Count"
+  - Shows room capacity when available
+  - Real-time calculation of estimated headcount from percentage
+  - Percentage values saved separately to indicate estimate
+- Sessions sorted by start time within each day
+
+#### Availability Settings (`/portal/availability`)
+- All event days displayed as cards
+- For each day:
+  - "All Day" button to set full availability
+  - "Clear" button to remove all slots
+  - Add multiple time slots with 12-hour AM/PM format
+  - Time dropdown limited to day's operating hours (30-min intervals)
+- Schedule preference selector:
+  - Back-to-back (consecutive sessions)
+  - Spread out (breaks between)
+  - Flexible (no preference)
+- Save button appears only when changes are made
+- Individual slot delete with confirmation
+- Immediate persist on delete (no save needed)
+
+#### Moderator Lookup (`/lookup`)
+- Email lookup to access portal
+- Stores moderator in localStorage for persistence
+- No password required (email-based access)
 
 ## State Management
 

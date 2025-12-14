@@ -45,9 +45,12 @@ This platform solves the challenge of coordinating volunteer moderators for even
 
 ### For Moderators
 - Register with name, phone number, email
-- Input availability per day (multiple from/to time ranges)
-- View assigned sessions
-- Update headcount for sessions they moderate
+- Dedicated portal with sidebar navigation
+- **Schedule tab**: View assigned sessions with times and rooms
+- **Availability tab**: Set availability per day with 12-hour AM/PM time format
+- Set schedule preference (back-to-back, spread out, or flexible)
+- Update headcount for sessions (exact count or percentage of room capacity)
+- Persistent sessions - stay logged in without timeout
 
 ---
 
@@ -165,7 +168,8 @@ Connection String: postgresql://postgres:<PASSWORD>@<HOST>:<PORT>/railway
 | room_id | INTEGER FK | Reference to rooms |
 | start_time | TIME | Session start time |
 | end_time | TIME | Session end time |
-| headcount | INTEGER | Actual attendance (updated later) |
+| headcount | INTEGER | Exact attendance count (if provided) |
+| headcount_percentage | INTEGER | Attendance as % of room capacity (estimate) |
 | moderators_needed | INTEGER | Number of moderators required |
 | created_at | TIMESTAMP | Creation timestamp |
 
@@ -176,6 +180,7 @@ Connection String: postgresql://postgres:<PASSWORD>@<HOST>:<PORT>/railway
 | name | VARCHAR(255) | Moderator name |
 | email | VARCHAR(255) UNIQUE | Moderator email |
 | phone | VARCHAR(50) | Phone number |
+| schedule_preference | VARCHAR(20) | Preference: 'consecutive', 'spread_out', or 'no_preference' |
 | created_at | TIMESTAMP | Registration timestamp |
 
 #### `availability`
@@ -239,7 +244,7 @@ CREATE INDEX idx_assignments_moderator ON assignments(moderator_id);
 | GET | `/:id` | Get session details |
 | POST | `/` | Create session |
 | PUT | `/:id` | Update session |
-| PATCH | `/:id/headcount` | Update headcount |
+| PATCH | `/:id/headcount` | Update headcount (exact count or percentage) |
 | DELETE | `/:id` | Delete session |
 | POST | `/bulk` | Bulk import sessions |
 
