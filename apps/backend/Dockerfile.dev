@@ -2,14 +2,17 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from monorepo structure
+COPY apps/backend/package*.json ./
 
 # Install ALL dependencies (including dev)
 RUN npm install
 
+# Copy source (will be overwritten by volume mount)
+COPY apps/backend/ ./
+
 # Expose port
 EXPOSE 3001
 
-# Start with hot reload
+# Start with hot reload using Node's --watch flag
 CMD ["npm", "run", "dev"]

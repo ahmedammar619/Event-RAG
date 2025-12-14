@@ -2,14 +2,21 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+# Copy package files from monorepo structure
+COPY apps/frontend/package*.json ./
 
 # Install ALL dependencies (including dev)
 RUN npm install
 
+# Copy source (will be overwritten by volume mount)
+COPY apps/frontend/ ./
+
+# Environment for file watching in Docker
+ENV CHOKIDAR_USEPOLLING=true
+ENV WATCHPACK_POLLING=true
+
 # Expose port
 EXPOSE 3000
 
-# Start vite dev server with host flag for Docker
-CMD ["npm", "run", "dev", "--", "--host"]
+# Start vite dev server
+CMD ["npm", "run", "dev"]

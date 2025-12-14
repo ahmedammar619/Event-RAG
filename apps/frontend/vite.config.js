@@ -5,12 +5,19 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
-    host: true,
+    host: '0.0.0.0',
+    strictPort: true,
     watch: {
-      // Use polling for Docker compatibility
       usePolling: true,
-      interval: 1000
+      interval: 100,
+      binaryInterval: 300
+    },
+    hmr: {
+      overlay: true
     }
+  },
+  optimizeDeps: {
+    exclude: ['fsevents']
   },
   build: {
     outDir: 'dist',

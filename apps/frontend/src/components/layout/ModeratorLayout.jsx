@@ -35,10 +35,10 @@ export default function ModeratorLayout() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-teal-700 to-teal-900 text-white flex-col z-50">
+      <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-blue-700 to-blue-900 text-white flex-col z-50">
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="MASCON" className="w-12 h-12 object-contain" />
+            <img src="/logo.png?1" alt="MASCON" className="w-12 h-12 object-contain" />
             <div>
               <h1 className="text-xl font-bold text-white m-0">MASCON</h1>
               <span className="text-xs text-white/50 uppercase tracking-widest">Moderator Portal</span>
@@ -56,7 +56,7 @@ export default function ModeratorLayout() {
                 flex items-center gap-3 px-6 py-3 text-white/70 no-underline
                 transition-all border-l-4 border-transparent
                 hover:bg-white/10 hover:text-white
-                ${isActive ? 'bg-teal-600/30 text-white border-l-white' : ''}
+                ${isActive ? 'bg-blue-600/30 text-white border-l-white' : ''}
               `}
             >
               {item.icon}
@@ -67,7 +67,7 @@ export default function ModeratorLayout() {
 
         <div className="p-4 border-t border-white/10">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-teal-500 rounded-full flex items-center justify-center font-semibold text-lg">
+            <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center font-semibold text-lg">
               {moderator?.name?.charAt(0) || 'M'}
             </div>
             <div className="flex-1 min-w-0">
@@ -85,10 +85,10 @@ export default function ModeratorLayout() {
       </aside>
 
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-teal-700 text-white px-4 py-3 shadow-md">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-blue-700 text-white px-4 py-3 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png" alt="MASCON" className="w-8 h-8 object-contain" />
+            <img src="/logo.png?1" alt="MASCON" className="w-8 h-8 object-contain" />
             <h1 className="font-bold text-lg m-0">MASCON</h1>
           </div>
           <button
@@ -117,7 +117,7 @@ export default function ModeratorLayout() {
               end={item.end}
               className={({ isActive }) => `
                 flex-1 flex flex-col items-center gap-1 py-3 no-underline transition-colors
-                ${isActive ? 'text-teal-600' : 'text-slate-400'}
+                ${isActive ? 'text-blue-600' : 'text-slate-400'}
               `}
             >
               {item.icon}
@@ -131,12 +131,12 @@ export default function ModeratorLayout() {
 
       {/* Desktop Footer */}
       <footer className="hidden lg:block fixed bottom-0 left-64 right-0 p-4 text-center text-sm text-slate-500 bg-white border-t border-slate-200">
-        &copy; {new Date().getFullYear()} MASCON.{' '}
-        <a href="https://ahmedammar.dev?mascon" target="_blank" rel="noopener noreferrer" className="text-teal-600 hover:underline">
+        &copy; {new Date().getFullYear()} Vewoz.{' '}
+        <a href="https://ahmedammar.dev?mascon" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
           Developer
         </a>
         {' | '}
-        <Link to="/admin/login" className="text-teal-600 hover:underline">
+        <Link to="/admin/login" className="text-blue-600 hover:underline">
           Admin
         </Link>
       </footer>

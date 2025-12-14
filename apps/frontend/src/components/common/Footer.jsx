@@ -24,7 +24,7 @@ export default function Footer({ variant = 'default' }) {
       <footer className="w-full bg-slate-800 py-4 px-6 mt-auto">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
           <p className="text-slate-400 m-0">
-            &copy; {currentYear} MASCON
+            &copy; {currentYear} Vewoz
           </p>
           <div className="flex items-center gap-4">
             <Link
@@ -53,7 +53,7 @@ export default function Footer({ variant = 'default' }) {
     <footer className="w-full py-4 px-6 mt-auto">
       <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
         <p className="text-white/60 m-0">
-          &copy; {currentYear} MASCON
+          &copy; {currentYear} Vewoz
         </p>
         <div className="flex items-center gap-4">
           <Link
