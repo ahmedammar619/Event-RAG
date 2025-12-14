@@ -30,7 +30,6 @@ export default function Settings() {
       setSchedulePreference(moderator.schedule_preference || 'no_preference')
       setDays(daysRes.data.data)
 
-      // Group existing availability by day
       const grouped = {}
       availRes.data.data.forEach(slot => {
         if (!grouped[slot.event_day_id]) {
@@ -80,6 +79,23 @@ export default function Settings() {
     setHasChanges(true)
   }
 
+  const setFullDay = (dayId) => {
+    const day = days.find(d => d.id === dayId)
+    setAvailability(prev => ({
+      ...prev,
+      [dayId]: [{ start_time: day.start_time.slice(0, 5), end_time: day.end_time.slice(0, 5) }]
+    }))
+    setHasChanges(true)
+  }
+
+  const clearDay = (dayId) => {
+    setAvailability(prev => ({
+      ...prev,
+      [dayId]: []
+    }))
+    setHasChanges(true)
+  }
+
   const handlePreferenceChange = (value) => {
     setSchedulePreference(value)
     setHasChanges(true)
@@ -88,7 +104,6 @@ export default function Settings() {
   const handleSubmit = async () => {
     setSaving(true)
     try {
-      // Flatten availability into slots array
       const slots = []
       Object.entries(availability).forEach(([dayId, daySlots]) => {
         daySlots.forEach(slot => {
@@ -100,7 +115,6 @@ export default function Settings() {
         })
       })
 
-      // Save availability and update schedule preference
       await Promise.all([
         availabilityService.bulkCreate(moderator.id, slots),
         moderatorsService.update(moderator.id, { schedule_preference: schedulePreference })
@@ -108,10 +122,9 @@ export default function Settings() {
 
       await refresh()
       setHasChanges(false)
-      toast.success('Availability saved successfully!')
+      toast.success('Availability saved!')
     } catch (err) {
-      const message = err.response?.data?.error?.message || 'Failed to save availability'
-      toast.error(message)
+      toast.error(err.response?.data?.error?.message || 'Failed to save')
     } finally {
       setSaving(false)
     }
@@ -122,10 +135,17 @@ export default function Settings() {
     const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', {
       weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
+      month: 'short',
+      day: 'numeric'
     })
+  }
+
+  const formatTime12 = (time24) => {
+    const [hours, minutes] = time24.split(':')
+    const h = parseInt(hours)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour12 = h % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
   }
 
   const generateTimeOptions = (dayStart, dayEnd) => {
@@ -136,8 +156,8 @@ export default function Settings() {
     for (let h = startHour; h <= endHour; h++) {
       for (let m = 0; m < 60; m += 30) {
         if (h === endHour && m > 0) break
-        const time = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
-        options.push(time)
+        const time24 = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`
+        options.push({ value: time24, label: formatTime12(time24) })
       }
     }
     return options
@@ -151,153 +171,186 @@ export default function Settings() {
     )
   }
 
+  const totalSlots = Object.values(availability).reduce((sum, slots) => sum + slots.length, 0)
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-semibold mb-2">Availability Settings</h1>
-        <p className="text-slate-500 text-sm md:text-base">
-          Set when you're available to volunteer for sessions.
-        </p>
+    <div className="max-w-3xl mx-auto pb-24">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-1">My Availability</h1>
+        <p className="text-slate-500">Select the times you can volunteer each day</p>
       </div>
 
-      <div className="flex flex-col gap-4 md:gap-6">
-        {days.map(day => (
-          <div key={day.id} className="card p-4 md:p-6">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
-              <div>
-                <h3 className="text-base md:text-lg font-semibold mb-1">{formatDate(day.date)}</h3>
-                <p className="text-slate-500 text-xs md:text-sm">
-                  Event hours: {day.start_time.slice(0, 5)} - {day.end_time.slice(0, 5)}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="btn btn-outline btn-sm"
-                onClick={() => addSlot(day.id)}
-              >
-                + Add Time Slot
-              </button>
-            </div>
-
-            {(availability[day.id] || []).length === 0 ? (
-              <p className="text-slate-500 text-sm">No availability set for this day</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {availability[day.id].map((slot, index) => (
-                  <div key={index} className="flex flex-wrap items-center gap-2 md:gap-3 p-3 bg-slate-50 rounded-lg">
-                    <select
-                      className="form-input w-full sm:w-auto min-w-[100px] text-sm py-2"
-                      value={slot.start_time}
-                      onChange={e => updateSlot(day.id, index, 'start_time', e.target.value)}
-                    >
-                      {generateTimeOptions(day.start_time, day.end_time).map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                    <span className="text-slate-500 hidden sm:inline">to</span>
-                    <span className="text-slate-500 sm:hidden w-full text-center text-xs">to</span>
-                    <select
-                      className="form-input w-full sm:w-auto min-w-[100px] text-sm py-2"
-                      value={slot.end_time}
-                      onChange={e => updateSlot(day.id, index, 'end_time', e.target.value)}
-                    >
-                      {generateTimeOptions(day.start_time, day.end_time).map(time => (
-                        <option key={time} value={time}>{time}</option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      className="btn btn-danger btn-sm w-full sm:w-auto"
-                      onClick={() => removeSlot(day.id, index)}
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {days.length === 0 && (
-        <div className="card p-8 text-center">
-          <div className="text-4xl mb-4">📅</div>
-          <h3 className="text-lg font-semibold mb-2">No Event Days</h3>
-          <p className="text-slate-500">
-            Event days haven't been configured yet. Please check back later.
-          </p>
+      {/* Quick Stats */}
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="bg-emerald-50 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-emerald-600">{totalSlots}</div>
+          <div className="text-sm text-emerald-700">Time Slots</div>
         </div>
-      )}
+        <div className="bg-blue-50 rounded-xl p-4 text-center">
+          <div className="text-2xl font-bold text-blue-600">{days.length}</div>
+          <div className="text-sm text-blue-700">Event Days</div>
+        </div>
+      </div>
 
-      {days.length > 0 && (
+      {days.length === 0 ? (
+        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-slate-200">
+          <div className="text-4xl mb-4">📅</div>
+          <h3 className="text-lg font-semibold mb-2">No Event Days Yet</h3>
+          <p className="text-slate-500">Check back later when event days are configured.</p>
+        </div>
+      ) : (
         <>
-          {/* Schedule Preference */}
-          <div className="card p-4 md:p-6 mt-4 md:mt-6">
-            <h3 className="text-base md:text-lg font-semibold mb-2">Schedule Preference</h3>
-            <p className="text-xs md:text-sm text-slate-500 mb-4">How would you prefer your sessions to be scheduled?</p>
-            <div className="flex flex-col gap-2 md:gap-3">
-              <label className={`flex items-start gap-3 p-3 md:p-4 border rounded-lg cursor-pointer transition-all hover:border-emerald-500 hover:bg-emerald-50/50 ${schedulePreference === 'consecutive' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}`}>
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="consecutive"
-                  checked={schedulePreference === 'consecutive'}
-                  onChange={e => handlePreferenceChange(e.target.value)}
-                  className="mt-0.5"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm md:text-base">Back-to-back</span>
-                  <span className="text-xs text-slate-500">I prefer sessions one after another</span>
+          {/* Event Days */}
+          <div className="space-y-4 mb-6">
+            {days.map(day => {
+              const daySlots = availability[day.id] || []
+              const hasSlots = daySlots.length > 0
+
+              return (
+                <div key={day.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                  {/* Day Header */}
+                  <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-white">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="font-semibold">{formatDate(day.date)}</h3>
+                        <p className="text-emerald-100 text-sm">
+                          {formatTime12(day.start_time.slice(0, 5))} - {formatTime12(day.end_time.slice(0, 5))}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setFullDay(day.id)}
+                          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          All Day
+                        </button>
+                        {hasSlots && (
+                          <button
+                            onClick={() => clearDay(day.id)}
+                            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Time Slots */}
+                  <div className="p-4">
+                    {!hasSlots ? (
+                      <div className="text-center py-6">
+                        <p className="text-slate-400 mb-3">No availability set</p>
+                        <button
+                          onClick={() => addSlot(day.id)}
+                          className="btn btn-outline btn-sm"
+                        >
+                          + Add Time Slot
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {daySlots.map((slot, index) => (
+                          <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
+                            <div className="flex-1 flex items-center gap-2 flex-wrap">
+                              <select
+                                className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                value={slot.start_time}
+                                onChange={e => updateSlot(day.id, index, 'start_time', e.target.value)}
+                              >
+                                {generateTimeOptions(day.start_time, day.end_time).map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                              <span className="text-slate-400 font-medium">to</span>
+                              <select
+                                className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                value={slot.end_time}
+                                onChange={e => updateSlot(day.id, index, 'end_time', e.target.value)}
+                              >
+                                {generateTimeOptions(day.start_time, day.end_time).map(opt => (
+                                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <button
+                              onClick={() => removeSlot(day.id, index)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Remove slot"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          onClick={() => addSlot(day.id)}
+                          className="w-full py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors text-sm font-medium"
+                        >
+                          + Add Another Slot
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </label>
-              <label className={`flex items-start gap-3 p-3 md:p-4 border rounded-lg cursor-pointer transition-all hover:border-emerald-500 hover:bg-emerald-50/50 ${schedulePreference === 'spread_out' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}`}>
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="spread_out"
-                  checked={schedulePreference === 'spread_out'}
-                  onChange={e => handlePreferenceChange(e.target.value)}
-                  className="mt-0.5"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm md:text-base">Spread out</span>
-                  <span className="text-xs text-slate-500">I prefer breaks between sessions</span>
-                </div>
-              </label>
-              <label className={`flex items-start gap-3 p-3 md:p-4 border rounded-lg cursor-pointer transition-all hover:border-emerald-500 hover:bg-emerald-50/50 ${schedulePreference === 'no_preference' ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}`}>
-                <input
-                  type="radio"
-                  name="schedule_preference"
-                  value="no_preference"
-                  checked={schedulePreference === 'no_preference'}
-                  onChange={e => handlePreferenceChange(e.target.value)}
-                  className="mt-0.5"
-                />
-                <div className="flex flex-col">
-                  <span className="font-medium text-sm md:text-base">No preference</span>
-                  <span className="text-xs text-slate-500">I'm flexible with scheduling</span>
-                </div>
-              </label>
-            </div>
+              )
+            })}
           </div>
 
-          {/* Save Button - Always visible */}
-          <div className="sticky bottom-0 mt-6 md:mt-8 py-4 bg-slate-50">
-            <button
-              className={`btn btn-lg w-full ${hasChanges ? 'btn-primary' : 'bg-slate-300 text-slate-500 cursor-not-allowed'}`}
-              onClick={handleSubmit}
-              disabled={saving || !hasChanges}
-            >
-              {saving ? 'Saving...' : hasChanges ? 'Save Changes' : 'No Changes'}
-            </button>
-            {hasChanges && (
-              <p className="text-xs text-center text-emerald-600 mt-2">
-                You have unsaved changes
-              </p>
-            )}
+          {/* Schedule Preference */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
+            <h3 className="font-semibold text-slate-900 mb-1">Schedule Preference</h3>
+            <p className="text-sm text-slate-500 mb-4">How should we schedule your sessions?</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { value: 'consecutive', label: 'Back-to-back', icon: '⏩', desc: 'Sessions together' },
+                { value: 'spread_out', label: 'Spread out', icon: '📊', desc: 'Breaks between' },
+                { value: 'no_preference', label: 'Flexible', icon: '🔄', desc: 'Any schedule' }
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => handlePreferenceChange(opt.value)}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                    schedulePreference === opt.value
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="text-2xl mb-1">{opt.icon}</div>
+                  <div className="font-medium text-slate-900">{opt.label}</div>
+                  <div className="text-xs text-slate-500">{opt.desc}</div>
+                </button>
+              ))}
+            </div>
           </div>
         </>
+      )}
+
+      {/* Sticky Save Button */}
+      {days.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-slate-200 p-4 shadow-lg">
+          <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
+            <div className="text-sm text-slate-500">
+              {hasChanges ? (
+                <span className="text-amber-600 font-medium">You have unsaved changes</span>
+              ) : (
+                <span>All changes saved</span>
+              )}
+            </div>
+            <button
+              onClick={handleSubmit}
+              disabled={saving || !hasChanges}
+              className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
+                hasChanges
+                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
+                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+              }`}
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )
