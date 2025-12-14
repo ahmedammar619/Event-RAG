@@ -212,8 +212,8 @@ export default function Schedule() {
                                   </>
                                 ) : (
                                   <>
-                                    <div className="text-lg font-bold text-slate-300">--</div>
-                                    <div className="text-[10px] text-slate-400 uppercase tracking-wide">Add</div>
+                                    <div className="text-sm font-bold text-emerald-600">+ Add</div>
+                                    <div className="text-[10px] text-slate-500">Headcount</div>
                                   </>
                                 )}
                               </button>

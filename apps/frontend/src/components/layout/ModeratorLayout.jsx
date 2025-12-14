@@ -95,8 +95,8 @@ export default function ModeratorLayout() {
       </header>
 
       {/* Main Content */}
-      <main className="lg:ml-64 min-h-screen pb-20 lg:pb-0">
-        <div className="pt-14 lg:pt-0 px-4 py-6 lg:p-8 max-w-4xl mx-auto">
+      <main className="lg:ml-64 min-h-screen pb-24 lg:pb-0">
+        <div className="pt-20 lg:pt-8 px-4 pb-6 lg:px-8 max-w-4xl mx-auto">
           <Outlet />
         </div>
       </main>
