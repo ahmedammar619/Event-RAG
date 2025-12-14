@@ -101,7 +101,11 @@ export default function Schedule() {
 
   const formatTime = (time) => {
     if (!time) return ''
-    return time.slice(0, 5)
+    const [hours, minutes] = time.slice(0, 5).split(':')
+    const h = parseInt(hours)
+    const ampm = h >= 12 ? 'PM' : 'AM'
+    const hour12 = h % 12 || 12
+    return `${hour12}:${minutes} ${ampm}`
   }
 
   // Group assignments by date
@@ -169,6 +173,9 @@ export default function Schedule() {
                             <span className="inline-flex items-center gap-1 text-slate-500">
                               <span>📍</span>
                               {a.room_name}
+                              {a.room_capacity && (
+                                <span className="text-slate-400">({a.room_capacity} cap)</span>
+                              )}
                             </span>
                           )}
                         </div>
