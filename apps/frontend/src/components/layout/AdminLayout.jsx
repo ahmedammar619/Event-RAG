@@ -33,8 +33,8 @@ export default function AdminLayout() {
           ☰
         </button>
         <div className="flex items-center gap-2">
-          <img src="/logo.png?1" alt="MASCON" className="w-8 h-8 object-contain" />
-          <span className="font-semibold text-lg">MASCON Admin</span>
+          <img src="/logo.png?1" alt="Vewoz" className="w-8 h-8 object-contain" />
+          <span className="font-semibold text-sm">Vewoz | MASCON</span>
         </div>
         <div className="w-8 h-8 bg-white/20 text-white rounded-full flex items-center justify-center text-sm font-semibold">
           {admin?.name?.charAt(0) || 'A'}
@@ -59,10 +59,10 @@ export default function AdminLayout() {
       `}>
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <img src="/logo.png?1" alt="MASCON" className="w-12 h-12 object-contain" />
+            <img src="/logo.png?1" alt="Vewoz" className="w-12 h-12 object-contain" />
             <div>
-              <h1 className="text-xl font-bold text-white m-0">MASCON</h1>
-              <span className="text-xs text-white/50 uppercase tracking-widest">Admin Panel</span>
+              <h1 className="text-lg font-bold text-white m-0">Vewoz Moderation</h1>
+              <span className="text-xs text-white/50 uppercase tracking-widest">MASCON | Admin</span>
             </div>
           </div>
         </div>

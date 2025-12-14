@@ -88,4 +88,46 @@ export default async function adminRoutes(fastify, options) {
 
     return success(result.rows[0]);
   });
+
+  // DELETE /api/admin/reset-event-data
+  // Deletes all moderators, assignments, sessions, rooms, and availability
+  // Keeps admins and event_days intact
+  fastify.delete('/reset-event-data', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    const { confirmation } = request.body;
+
+    if (confirmation !== 'DELETE ALL EVENT DATA') {
+      throw validationError('Invalid confirmation. Please type "DELETE ALL EVENT DATA" to confirm.');
+    }
+
+    // Delete in order to respect foreign key constraints
+    // 1. Assignments (depends on sessions and moderators)
+    // 2. Availability (depends on moderators and event_days)
+    // 3. Sessions (depends on rooms and event_days)
+    // 4. Moderators
+    // 5. Rooms
+
+    const counts = {};
+
+    const assignmentsResult = await db.query('DELETE FROM assignments RETURNING id');
+    counts.assignments = assignmentsResult.rowCount;
+
+    const availabilityResult = await db.query('DELETE FROM availability RETURNING id');
+    counts.availability = availabilityResult.rowCount;
+
+    const sessionsResult = await db.query('DELETE FROM sessions RETURNING id');
+    counts.sessions = sessionsResult.rowCount;
+
+    const moderatorsResult = await db.query('DELETE FROM moderators RETURNING id');
+    counts.moderators = moderatorsResult.rowCount;
+
+    const roomsResult = await db.query('DELETE FROM rooms RETURNING id');
+    counts.rooms = roomsResult.rowCount;
+
+    return success({
+      message: 'All event data has been deleted successfully',
+      deleted: counts
+    });
+  });
 }
