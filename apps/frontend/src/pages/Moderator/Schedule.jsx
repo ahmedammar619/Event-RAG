@@ -12,6 +12,7 @@ export default function Schedule() {
   const [assignments, setAssignments] = useState([])
   const [editingHeadcount, setEditingHeadcount] = useState(null)
   const [headcountValue, setHeadcountValue] = useState('')
+  const [inputMode, setInputMode] = useState('percentage') // 'percentage' or 'exact'
 
   useEffect(() => {
     if (moderator?.id) {
@@ -32,13 +33,58 @@ export default function Schedule() {
 
   const updateHeadcount = async (sessionId) => {
     try {
-      await sessionsService.updateHeadcount(sessionId, parseInt(headcountValue))
+      const value = parseInt(headcountValue)
+      if (isNaN(value) || value < 0) {
+        toast.error('Please enter a valid number')
+        return
+      }
+
+      const data = inputMode === 'percentage'
+        ? { headcount_percentage: value }
+        : { headcount: value }
+
+      await sessionsService.updateHeadcount(sessionId, data)
       toast.success('Headcount updated')
       setEditingHeadcount(null)
       loadData()
     } catch (err) {
-      toast.error('Failed to update headcount')
+      toast.error(err.response?.data?.error?.message || 'Failed to update headcount')
     }
+  }
+
+  const startEditing = (assignment) => {
+    setEditingHeadcount(assignment.session_id)
+    // Default to percentage mode, pre-fill with existing value if any
+    if (assignment.headcount_percentage) {
+      setInputMode('percentage')
+      setHeadcountValue(assignment.headcount_percentage.toString())
+    } else if (assignment.headcount) {
+      setInputMode('exact')
+      setHeadcountValue(assignment.headcount.toString())
+    } else {
+      setInputMode('percentage')
+      setHeadcountValue('')
+    }
+  }
+
+  const getHeadcountDisplay = (assignment) => {
+    if (assignment.headcount_percentage !== null && assignment.headcount_percentage !== undefined) {
+      const estimated = assignment.room_capacity
+        ? Math.round((assignment.headcount_percentage / 100) * assignment.room_capacity)
+        : null
+      return {
+        type: 'percentage',
+        value: assignment.headcount_percentage,
+        estimated
+      }
+    } else if (assignment.headcount !== null && assignment.headcount !== undefined) {
+      return {
+        type: 'exact',
+        value: assignment.headcount,
+        estimated: null
+      }
+    }
+    return null
   }
 
   const formatDate = (dateStr) => {
@@ -130,42 +176,84 @@ export default function Schedule() {
 
                       <div className="flex items-center gap-3">
                         {editingHeadcount === a.session_id ? (
-                          <div className="flex flex-wrap gap-2 items-center">
-                            <input
-                              type="number"
-                              className="form-input w-20 md:w-24 text-sm py-1.5"
-                              placeholder="Count"
-                              value={headcountValue}
-                              onChange={e => setHeadcountValue(e.target.value)}
-                              min="0"
-                            />
-                            <button
-                              className="btn btn-primary btn-sm"
-                              onClick={() => updateHeadcount(a.session_id)}
-                            >
-                              Save
-                            </button>
-                            <button
-                              className="btn btn-outline btn-sm"
-                              onClick={() => setEditingHeadcount(null)}
-                            >
-                              Cancel
-                            </button>
+                          <div className="flex flex-col gap-2">
+                            {a.room_capacity && (
+                              <div className="text-xs text-slate-500">
+                                Room capacity: <strong>{a.room_capacity}</strong>
+                              </div>
+                            )}
+                            <div className="flex flex-wrap gap-2 items-center">
+                              <select
+                                className="form-input text-sm py-1.5"
+                                value={inputMode}
+                                onChange={e => {
+                                  setInputMode(e.target.value)
+                                  setHeadcountValue('')
+                                }}
+                              >
+                                <option value="percentage">% Full</option>
+                                <option value="exact">Exact Count</option>
+                              </select>
+                              <div className="relative">
+                                <input
+                                  type="number"
+                                  className="form-input w-20 md:w-24 text-sm py-1.5 pr-6"
+                                  placeholder={inputMode === 'percentage' ? '0-100' : 'Count'}
+                                  value={headcountValue}
+                                  onChange={e => setHeadcountValue(e.target.value)}
+                                  min="0"
+                                  max={inputMode === 'percentage' ? '100' : undefined}
+                                />
+                                {inputMode === 'percentage' && (
+                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                )}
+                              </div>
+                              {inputMode === 'percentage' && headcountValue && a.room_capacity && (
+                                <span className="text-xs text-slate-500">
+                                  ≈ {Math.round((parseInt(headcountValue) / 100) * a.room_capacity)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                className="btn btn-primary btn-sm"
+                                onClick={() => updateHeadcount(a.session_id)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                className="btn btn-outline btn-sm"
+                                onClick={() => setEditingHeadcount(null)}
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
                             <div className="text-right">
                               <span className="text-xs text-slate-500 block">Headcount</span>
-                              <span className="text-lg font-semibold text-slate-700">
-                                {a.headcount ?? '-'}
-                              </span>
+                              {(() => {
+                                const display = getHeadcountDisplay(a)
+                                if (!display) {
+                                  return <span className="text-lg font-semibold text-slate-400">-</span>
+                                }
+                                if (display.type === 'percentage') {
+                                  return (
+                                    <div>
+                                      <span className="text-lg font-semibold text-blue-600">{display.value}%</span>
+                                      {display.estimated !== null && (
+                                        <span className="text-xs text-slate-500 block">≈ {display.estimated}</span>
+                                      )}
+                                    </div>
+                                  )
+                                }
+                                return <span className="text-lg font-semibold text-slate-700">{display.value}</span>
+                              })()}
                             </div>
                             <button
                               className="btn btn-outline btn-sm"
-                              onClick={() => {
-                                setEditingHeadcount(a.session_id)
-                                setHeadcountValue(a.headcount || '')
-                              }}
+                              onClick={() => startEditing(a)}
                             >
                               Update
                             </button>

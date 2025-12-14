@@ -11,6 +11,7 @@ export default async function sessionsRoutes(fastify, options) {
       SELECT
         s.*,
         r.name as room_name,
+        r.capacity as room_capacity,
         ed.date,
         COALESCE(
           json_agg(
@@ -159,16 +160,33 @@ export default async function sessionsRoutes(fastify, options) {
   // PATCH /api/sessions/:id/headcount
   fastify.patch('/:id/headcount', async (request, reply) => {
     const { id } = request.params;
-    const { headcount } = request.body;
+    const { headcount, headcount_percentage } = request.body;
 
-    if (headcount === undefined || headcount < 0) {
-      throw validationError('Valid headcount is required');
+    // Either headcount or headcount_percentage must be provided
+    if (headcount === undefined && headcount_percentage === undefined) {
+      throw validationError('Either headcount or headcount_percentage is required');
     }
 
-    const result = await db.query(
-      'UPDATE sessions SET headcount = $1 WHERE id = $2 RETURNING *',
-      [headcount, id]
-    );
+    // If percentage is provided, clear headcount and set percentage
+    // If headcount is provided, clear percentage and set headcount
+    let result;
+    if (headcount_percentage !== undefined) {
+      if (headcount_percentage < 0 || headcount_percentage > 100) {
+        throw validationError('Percentage must be between 0 and 100');
+      }
+      result = await db.query(
+        'UPDATE sessions SET headcount = NULL, headcount_percentage = $1 WHERE id = $2 RETURNING *',
+        [headcount_percentage, id]
+      );
+    } else {
+      if (headcount < 0) {
+        throw validationError('Headcount must be 0 or greater');
+      }
+      result = await db.query(
+        'UPDATE sessions SET headcount = $1, headcount_percentage = NULL WHERE id = $2 RETURNING *',
+        [headcount, id]
+      );
+    }
 
     if (result.rows.length === 0) {
       throw notFound('Session');

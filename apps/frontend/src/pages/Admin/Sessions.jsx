@@ -187,34 +187,55 @@ export default function Sessions() {
                     <th>Date</th>
                     <th>Time</th>
                     <th>Room</th>
+                    <th>Headcount</th>
                     <th>Moderators</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sessions.map(session => (
-                    <tr key={session.id}>
-                      <td><strong>{session.name}</strong></td>
-                      <td>{formatDate(session.date)}</td>
-                      <td>{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</td>
-                      <td>{session.room_name || '-'}</td>
-                      <td>
-                        <span className={`badge ${session.assigned_moderators.length >= session.moderators_needed ? 'badge-success' : 'badge-warning'}`}>
-                          {session.assigned_moderators.length}/{session.moderators_needed}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="flex gap-2">
-                          <button className="btn btn-outline btn-sm" onClick={() => openModal(session)}>
-                            Edit
-                          </button>
-                          <button className="btn btn-danger btn-sm" onClick={() => handleDelete(session.id)}>
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                  {sessions.map(session => {
+                    const getHeadcountDisplay = () => {
+                      if (session.headcount_percentage !== null && session.headcount_percentage !== undefined) {
+                        const estimated = session.room_capacity
+                          ? Math.round((session.headcount_percentage / 100) * session.room_capacity)
+                          : null
+                        return (
+                          <span className="text-blue-600" title="Estimate based on percentage">
+                            ~{estimated !== null ? estimated : '?'}
+                            <span className="text-xs ml-1">({session.headcount_percentage}%)</span>
+                          </span>
+                        )
+                      } else if (session.headcount !== null && session.headcount !== undefined && session.headcount > 0) {
+                        return <span>{session.headcount}</span>
+                      }
+                      return <span className="text-slate-400">-</span>
+                    }
+
+                    return (
+                      <tr key={session.id}>
+                        <td><strong>{session.name}</strong></td>
+                        <td>{formatDate(session.date)}</td>
+                        <td>{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</td>
+                        <td>{session.room_name || '-'}</td>
+                        <td>{getHeadcountDisplay()}</td>
+                        <td>
+                          <span className={`badge ${session.assigned_moderators.length >= session.moderators_needed ? 'badge-success' : 'badge-warning'}`}>
+                            {session.assigned_moderators.length}/{session.moderators_needed}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="flex gap-2">
+                            <button className="btn btn-outline btn-sm" onClick={() => openModal(session)}>
+                              Edit
+                            </button>
+                            <button className="btn btn-danger btn-sm" onClick={() => handleDelete(session.id)}>
+                              Delete
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

@@ -101,6 +101,14 @@ const migrations = [
      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'admins' AND column_name = 'username') THEN
        ALTER TABLE admins ADD COLUMN username VARCHAR(100) UNIQUE;
      END IF;
+   END $$`,
+
+  // 011: Add headcount_percentage to sessions for estimate tracking
+  `DO $$
+   BEGIN
+     IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sessions' AND column_name = 'headcount_percentage') THEN
+       ALTER TABLE sessions ADD COLUMN headcount_percentage INTEGER;
+     END IF;
    END $$`
 ];
 
