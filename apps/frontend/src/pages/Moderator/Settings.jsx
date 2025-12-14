@@ -63,6 +63,8 @@ export default function Settings() {
   }
 
   const removeSlot = (dayId, index) => {
+    if (!confirm('Are you sure you want to remove this time slot?')) return
+
     setAvailability(prev => ({
       ...prev,
       [dayId]: prev[dayId].filter((_, i) => i !== index)
@@ -90,6 +92,8 @@ export default function Settings() {
   }
 
   const clearDay = (dayId) => {
+    if (!confirm('Are you sure you want to clear all time slots for this day?')) return
+
     setAvailability(prev => ({
       ...prev,
       [dayId]: []
