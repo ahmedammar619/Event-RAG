@@ -11,7 +11,7 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-800 to-blue-600">
       {/* Platform Header */}
       <header className="w-full py-4 px-6 flex items-center justify-center gap-3 bg-slate-900/50 backdrop-blur-sm border-b border-white/10">
-        <img src="/logo.png?21" alt="Vewoz" className="w-24 h-24 lg:w-32 lg:h-32 object-contain" />
+        <img src="/logo.png?2" alt="Vewoz" className="w-24 h-24 lg:w-32 lg:h-32 object-contain" />
         <span className="text-white font-bold text-4xl">Vewoz</span>
       </header>
 
