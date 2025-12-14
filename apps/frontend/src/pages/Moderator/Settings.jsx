@@ -64,17 +64,16 @@ export default function Settings() {
   }
 
   const removeSlot = async (dayId, index) => {
-    if (!confirm('Are you sure you want to remove this time slot?')) return
+    if (!confirm('Remove this time slot?')) return
 
     const slot = availability[dayId][index]
 
-    // If slot has an ID, it exists in database - delete it immediately
     if (slot.id) {
       try {
         await availabilityService.delete(slot.id)
-        toast.success('Time slot removed')
+        toast.success('Removed')
       } catch (err) {
-        toast.error('Failed to remove time slot')
+        toast.error('Failed to remove')
         return
       }
     }
@@ -105,18 +104,17 @@ export default function Settings() {
   }
 
   const clearDay = async (dayId) => {
-    if (!confirm('Are you sure you want to clear all time slots for this day?')) return
+    if (!confirm('Clear all slots for this day?')) return
 
     const daySlots = availability[dayId] || []
     const existingSlots = daySlots.filter(slot => slot.id)
 
-    // Delete all existing slots from database
     if (existingSlots.length > 0) {
       try {
         await Promise.all(existingSlots.map(slot => availabilityService.delete(slot.id)))
-        toast.success('Time slots cleared')
+        toast.success('Cleared')
       } catch (err) {
-        toast.error('Failed to clear time slots')
+        toast.error('Failed to clear')
         return
       }
     }
@@ -153,7 +151,7 @@ export default function Settings() {
 
       await refresh()
       await loadData()
-      toast.success('Availability saved!')
+      toast.success('Saved!')
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Failed to save')
     } finally {
@@ -165,7 +163,7 @@ export default function Settings() {
     const dateOnly = dateStr.split('T')[0]
     const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', {
-      weekday: 'long',
+      weekday: 'short',
       month: 'short',
       day: 'numeric'
     })
@@ -196,7 +194,7 @@ export default function Settings() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="spinner"></div>
       </div>
     )
@@ -205,33 +203,28 @@ export default function Settings() {
   const totalSlots = Object.values(availability).reduce((sum, slots) => sum + slots.length, 0)
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="pb-6">
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 mb-1">My Availability</h1>
-        <p className="text-slate-500">Select the times you can volunteer each day</p>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="bg-emerald-50 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-emerald-600">{totalSlots}</div>
-          <div className="text-sm text-emerald-700">Time Slots</div>
-        </div>
-        <div className="bg-blue-50 rounded-xl p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{days.length}</div>
-          <div className="text-sm text-blue-700">Event Days</div>
-        </div>
+        <h1 className="text-xl font-bold text-slate-900">My Availability</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          {totalSlots} time slot{totalSlots !== 1 ? 's' : ''} across {days.length} day{days.length !== 1 ? 's' : ''}
+        </p>
       </div>
 
       {days.length === 0 ? (
-        <div className="bg-white rounded-xl p-8 text-center shadow-sm border border-slate-200">
-          <div className="text-4xl mb-4">📅</div>
-          <h3 className="text-lg font-semibold mb-2">No Event Days Yet</h3>
-          <p className="text-slate-500">Check back later when event days are configured.</p>
+        <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-200">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Event Days</h3>
+          <p className="text-slate-500 text-sm">Check back when event days are configured.</p>
         </div>
       ) : (
         <>
-          {/* Event Days */}
+          {/* Days */}
           <div className="space-y-4 mb-6">
             {days.map(day => {
               const daySlots = availability[day.id] || []
@@ -240,25 +233,25 @@ export default function Settings() {
               return (
                 <div key={day.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                   {/* Day Header */}
-                  <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-3 text-white">
-                    <div className="flex justify-between items-center">
+                  <div className="bg-emerald-600 px-4 py-3">
+                    <div className="flex items-center justify-between">
                       <div>
-                        <h3 className="font-semibold">{formatDate(day.date)}</h3>
-                        <p className="text-emerald-100 text-sm">
+                        <div className="font-semibold text-white">{formatDate(day.date)}</div>
+                        <div className="text-emerald-100 text-xs mt-0.5">
                           {formatTime12(day.start_time.slice(0, 5))} - {formatTime12(day.end_time.slice(0, 5))}
-                        </p>
+                        </div>
                       </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => setFullDay(day.id)}
-                          className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                          className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium text-white transition-colors"
                         >
                           All Day
                         </button>
                         {hasSlots && (
                           <button
                             onClick={() => clearDay(day.id)}
-                            className="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-sm font-medium transition-colors"
+                            className="px-3 py-1.5 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-medium text-white transition-colors"
                           >
                             Clear
                           </button>
@@ -267,25 +260,25 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  {/* Time Slots */}
+                  {/* Slots */}
                   <div className="p-4">
                     {!hasSlots ? (
-                      <div className="text-center py-6">
-                        <p className="text-slate-400 mb-3">No availability set</p>
-                        <button
-                          onClick={() => addSlot(day.id)}
-                          className="btn btn-outline btn-sm"
-                        >
-                          + Add Time Slot
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => addSlot(day.id)}
+                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-2"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                        </svg>
+                        Add Time Slot
+                      </button>
                     ) : (
                       <div className="space-y-3">
                         {daySlots.map((slot, index) => (
-                          <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg">
-                            <div className="flex-1 flex items-center gap-2 flex-wrap">
+                          <div key={index} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
+                            <div className="flex-1 grid grid-cols-2 gap-2">
                               <select
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 value={slot.start_time}
                                 onChange={e => updateSlot(day.id, index, 'start_time', e.target.value)}
                               >
@@ -293,9 +286,8 @@ export default function Settings() {
                                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                                 ))}
                               </select>
-                              <span className="text-slate-400 font-medium">to</span>
                               <select
-                                className="flex-1 min-w-[120px] px-3 py-2 bg-white border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                 value={slot.end_time}
                                 onChange={e => updateSlot(day.id, index, 'end_time', e.target.value)}
                               >
@@ -306,32 +298,19 @@ export default function Settings() {
                             </div>
                             <button
                               onClick={() => removeSlot(day.id, index)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                              title="Remove slot"
+                              className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                               </svg>
                             </button>
-                            {slot.modified && (
-                              <button
-                                onClick={handleSubmit}
-                                disabled={saving}
-                                className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                title="Save changes"
-                              >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                </svg>
-                              </button>
-                            )}
                           </div>
                         ))}
                         <button
                           onClick={() => addSlot(day.id)}
-                          className="w-full py-2 border-2 border-dashed border-slate-300 rounded-lg text-slate-500 hover:border-emerald-500 hover:text-emerald-600 transition-colors text-sm font-medium"
+                          className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors text-sm font-medium"
                         >
-                          + Add Another Slot
+                          + Add Another
                         </button>
                       </div>
                     )}
@@ -344,45 +323,46 @@ export default function Settings() {
           {/* Schedule Preference */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4 mb-6">
             <h3 className="font-semibold text-slate-900 mb-1">Schedule Preference</h3>
-            <p className="text-sm text-slate-500 mb-4">How should we schedule your sessions?</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <p className="text-xs text-slate-500 mb-4">How should we schedule your sessions?</p>
+
+            <div className="grid grid-cols-3 gap-2">
               {[
-                { value: 'consecutive', label: 'Back-to-back', icon: '⏩', desc: 'Sessions together' },
-                { value: 'spread_out', label: 'Spread out', icon: '📊', desc: 'Breaks between' },
-                { value: 'no_preference', label: 'Flexible', icon: '🔄', desc: 'Any schedule' }
+                { value: 'consecutive', label: 'Back-to-back', desc: 'Together' },
+                { value: 'spread_out', label: 'Spread out', desc: 'Breaks' },
+                { value: 'no_preference', label: 'Flexible', desc: 'Any' }
               ].map(opt => (
                 <button
                   key={opt.value}
                   onClick={() => handlePreferenceChange(opt.value)}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`p-3 rounded-xl border-2 text-center transition-all ${
                     schedulePreference === opt.value
                       ? 'border-emerald-500 bg-emerald-50'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{opt.icon}</div>
-                  <div className="font-medium text-slate-900">{opt.label}</div>
-                  <div className="text-xs text-slate-500">{opt.desc}</div>
+                  <div className={`text-sm font-semibold ${schedulePreference === opt.value ? 'text-emerald-700' : 'text-slate-700'}`}>
+                    {opt.label}
+                  </div>
+                  <div className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</div>
                 </button>
               ))}
             </div>
-
-            {/* Save Button - Only shows when there are changes */}
-            {hasChanges && (
-              <div className="mt-4 pt-4 border-t border-slate-200">
-                <button
-                  onClick={handleSubmit}
-                  disabled={saving}
-                  className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
-                >
-                  {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            )}
           </div>
+
+          {/* Save Button */}
+          {hasChanges && (
+            <div className="sticky bottom-4">
+              <button
+                onClick={handleSubmit}
+                disabled={saving}
+                className="w-full py-4 bg-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          )}
         </>
       )}
-
     </div>
   )
 }
