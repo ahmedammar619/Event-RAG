@@ -98,16 +98,16 @@ export default function Rooms() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-3">
+        <div className="flex flex-row gap-2 w-full flex-wrap justify-center items-center">
           {rooms.map(room => (
-            <div key={room.id} className="card">
+            <div key={room.id} className="card w-fit">
               <h3>{room.name}</h3>
               {room.capacity && (
                 <p className="text-muted text-sm">Capacity: {room.capacity}</p>
               )}
               <p className="text-sm">{room.session_count} sessions</p>
               <div className="flex gap-2 mt-4">
-                <button className="btn btn-outline btn-sm" onClick={() => openModal(room)}>
+                <button className="btn-gray-200 btn-outline btn-sm" onClick={() => openModal(room)}>
                   Edit
                 </button>
                 <button className="btn btn-danger btn-sm" onClick={() => handleDelete(room.id)}>
