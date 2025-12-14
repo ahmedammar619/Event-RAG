@@ -36,6 +36,7 @@ export default function Settings() {
           grouped[slot.event_day_id] = []
         }
         grouped[slot.event_day_id].push({
+          id: slot.id,
           start_time: slot.start_time.slice(0, 5),
           end_time: slot.end_time.slice(0, 5),
           modified: false
@@ -62,14 +63,26 @@ export default function Settings() {
     setHasChanges(true)
   }
 
-  const removeSlot = (dayId, index) => {
+  const removeSlot = async (dayId, index) => {
     if (!confirm('Are you sure you want to remove this time slot?')) return
+
+    const slot = availability[dayId][index]
+
+    // If slot has an ID, it exists in database - delete it immediately
+    if (slot.id) {
+      try {
+        await availabilityService.delete(slot.id)
+        toast.success('Time slot removed')
+      } catch (err) {
+        toast.error('Failed to remove time slot')
+        return
+      }
+    }
 
     setAvailability(prev => ({
       ...prev,
       [dayId]: prev[dayId].filter((_, i) => i !== index)
     }))
-    setHasChanges(true)
   }
 
   const updateSlot = (dayId, index, field, value) => {
@@ -91,14 +104,27 @@ export default function Settings() {
     setHasChanges(true)
   }
 
-  const clearDay = (dayId) => {
+  const clearDay = async (dayId) => {
     if (!confirm('Are you sure you want to clear all time slots for this day?')) return
+
+    const daySlots = availability[dayId] || []
+    const existingSlots = daySlots.filter(slot => slot.id)
+
+    // Delete all existing slots from database
+    if (existingSlots.length > 0) {
+      try {
+        await Promise.all(existingSlots.map(slot => availabilityService.delete(slot.id)))
+        toast.success('Time slots cleared')
+      } catch (err) {
+        toast.error('Failed to clear time slots')
+        return
+      }
+    }
 
     setAvailability(prev => ({
       ...prev,
       [dayId]: []
     }))
-    setHasChanges(true)
   }
 
   const handlePreferenceChange = (value) => {
