@@ -10,9 +10,10 @@ export default function Schedule() {
 
   const [loading, setLoading] = useState(true)
   const [assignments, setAssignments] = useState([])
-  const [editingHeadcount, setEditingHeadcount] = useState(null)
+  const [editingId, setEditingId] = useState(null)
   const [headcountValue, setHeadcountValue] = useState('')
-  const [inputMode, setInputMode] = useState('percentage') // 'percentage' or 'exact'
+  const [inputMode, setInputMode] = useState('percentage')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (moderator?.id) {
@@ -31,60 +32,46 @@ export default function Schedule() {
     }
   }
 
-  const updateHeadcount = async (sessionId) => {
-    try {
-      const value = parseInt(headcountValue)
-      if (isNaN(value) || value < 0) {
-        toast.error('Please enter a valid number')
-        return
-      }
+  const saveHeadcount = async (sessionId) => {
+    const value = parseInt(headcountValue)
+    if (isNaN(value) || value < 0) {
+      toast.error('Please enter a valid number')
+      return
+    }
+    if (inputMode === 'percentage' && value > 100) {
+      toast.error('Percentage cannot exceed 100')
+      return
+    }
 
+    setSaving(true)
+    try {
       const data = inputMode === 'percentage'
         ? { headcount_percentage: value }
         : { headcount: value }
 
       await sessionsService.updateHeadcount(sessionId, data)
-      toast.success('Headcount updated')
-      setEditingHeadcount(null)
+      toast.success('Saved!')
+      setEditingId(null)
       loadData()
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Failed to update headcount')
+      toast.error(err.response?.data?.error?.message || 'Failed to save')
+    } finally {
+      setSaving(false)
     }
   }
 
-  const startEditing = (assignment) => {
-    setEditingHeadcount(assignment.session_id)
-    // Default to percentage mode, pre-fill with existing value if any
-    if (assignment.headcount_percentage) {
+  const startEditing = (a) => {
+    setEditingId(a.session_id)
+    if (a.headcount_percentage) {
       setInputMode('percentage')
-      setHeadcountValue(assignment.headcount_percentage.toString())
-    } else if (assignment.headcount) {
+      setHeadcountValue(a.headcount_percentage.toString())
+    } else if (a.headcount) {
       setInputMode('exact')
-      setHeadcountValue(assignment.headcount.toString())
+      setHeadcountValue(a.headcount.toString())
     } else {
       setInputMode('percentage')
       setHeadcountValue('')
     }
-  }
-
-  const getHeadcountDisplay = (assignment) => {
-    if (assignment.headcount_percentage !== null && assignment.headcount_percentage !== undefined) {
-      const estimated = assignment.room_capacity
-        ? Math.round((assignment.headcount_percentage / 100) * assignment.room_capacity)
-        : null
-      return {
-        type: 'percentage',
-        value: assignment.headcount_percentage,
-        estimated
-      }
-    } else if (assignment.headcount !== null && assignment.headcount !== undefined) {
-      return {
-        type: 'exact',
-        value: assignment.headcount,
-        estimated: null
-      }
-    }
-    return null
   }
 
   const formatDate = (dateStr) => {
@@ -92,10 +79,9 @@ export default function Schedule() {
     const dateOnly = dateStr.split('T')[0]
     const date = new Date(dateOnly + 'T00:00:00')
     return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
     })
   }
 
@@ -108,179 +94,230 @@ export default function Schedule() {
     return `${hour12}:${minutes} ${ampm}`
   }
 
-  // Group assignments by date
-  const groupedAssignments = assignments.reduce((acc, a) => {
+  const getHeadcountInfo = (a) => {
+    if (a.headcount_percentage != null) {
+      const est = a.room_capacity ? Math.round((a.headcount_percentage / 100) * a.room_capacity) : null
+      return { isPercent: true, value: a.headcount_percentage, estimated: est }
+    }
+    if (a.headcount != null && a.headcount > 0) {
+      return { isPercent: false, value: a.headcount, estimated: null }
+    }
+    return null
+  }
+
+  // Group by date
+  const grouped = assignments.reduce((acc, a) => {
     const date = a.date
     if (!acc[date]) acc[date] = []
     acc[date].push(a)
     return acc
   }, {})
 
-  // Sort assignments by time within each day
-  Object.keys(groupedAssignments).forEach(date => {
-    groupedAssignments[date].sort((a, b) => a.start_time.localeCompare(b.start_time))
+  Object.keys(grouped).forEach(date => {
+    grouped[date].sort((a, b) => a.start_time.localeCompare(b.start_time))
   })
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-[300px]">
         <div className="spinner"></div>
       </div>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="mb-6 md:mb-8">
-        <h1 className="text-xl md:text-2xl font-semibold mb-2">My Schedule</h1>
-        <p className="text-slate-500 text-sm md:text-base">
-          Hello, <strong className="text-slate-800">{moderator?.name}</strong>! Here are your assigned sessions.
+    <div className="pb-6">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-xl font-bold text-slate-900">My Schedule</h1>
+        <p className="text-sm text-slate-500 mt-1">
+          {assignments.length} session{assignments.length !== 1 ? 's' : ''} assigned
         </p>
       </div>
 
       {assignments.length === 0 ? (
-        <div className="card p-8 text-center">
-          <div className="text-4xl mb-4">📭</div>
-          <h3 className="text-lg font-semibold mb-2">No Assignments Yet</h3>
-          <p className="text-slate-500 mb-6">
-            You haven't been assigned to any sessions yet. Make sure to set your availability so the admin can assign you.
+        <div className="bg-white rounded-2xl p-8 text-center shadow-sm border border-slate-200">
+          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-2">No Assignments Yet</h3>
+          <p className="text-slate-500 text-sm mb-6">
+            Set your availability so the admin can assign you to sessions.
           </p>
-          <Link to="/portal/availability" className="btn btn-primary">
+          <Link to="/portal/availability" className="inline-flex items-center gap-2 bg-emerald-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-700 transition-colors">
             Set Availability
           </Link>
         </div>
       ) : (
-        <div className="flex flex-col gap-6 md:gap-8">
-          {Object.entries(groupedAssignments)
+        <div className="space-y-6">
+          {Object.entries(grouped)
             .sort(([a], [b]) => a.localeCompare(b))
-            .map(([date, dayAssignments]) => (
-            <div key={date}>
-              <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4 pb-2 border-b-2 border-emerald-600 text-emerald-700">
-                {formatDate(date)}
-              </h2>
-              <div className="flex flex-col gap-3 md:gap-4">
-                {dayAssignments.map(a => (
-                  <div key={a.id} className="card p-4 md:p-5">
-                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base md:text-lg font-semibold mb-1 truncate">{a.session_name}</h3>
-                        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-sm">
-                          <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
-                            <span>🕐</span>
-                            {formatTime(a.start_time)} - {formatTime(a.end_time)}
-                          </span>
-                          {a.room_name && (
-                            <span className="inline-flex items-center gap-1 text-slate-500">
-                              <span>📍</span>
-                              {a.room_name}
-                              {a.room_capacity && (
-                                <span className="text-slate-400">({a.room_capacity} cap)</span>
-                              )}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+            .map(([date, sessions]) => (
+              <div key={date}>
+                {/* Date Header */}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center">
+                    <span className="text-white font-bold text-sm">
+                      {new Date(date + 'T00:00:00').getDate()}
+                    </span>
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-900">{formatDate(date)}</div>
+                    <div className="text-xs text-slate-500">{sessions.length} session{sessions.length !== 1 ? 's' : ''}</div>
+                  </div>
+                </div>
 
-                      <div className="flex items-center gap-3">
-                        {editingHeadcount === a.session_id ? (
-                          <div className="flex flex-col gap-2">
-                            {a.room_capacity && (
-                              <div className="text-xs text-slate-500">
-                                Room capacity: <strong>{a.room_capacity}</strong>
+                {/* Sessions */}
+                <div className="space-y-3 ml-2 pl-4 border-l-2 border-emerald-200">
+                  {sessions.map(a => {
+                    const headcount = getHeadcountInfo(a)
+                    const isEditing = editingId === a.session_id
+
+                    return (
+                      <div key={a.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                        {/* Session Info */}
+                        <div className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="font-semibold text-slate-900 leading-tight">{a.session_name}</h3>
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm">
+                                <span className="text-emerald-600 font-medium">
+                                  {formatTime(a.start_time)} - {formatTime(a.end_time)}
+                                </span>
+                                {a.room_name && (
+                                  <span className="text-slate-500">
+                                    {a.room_name}
+                                    {a.room_capacity && <span className="text-slate-400"> · {a.room_capacity} seats</span>}
+                                  </span>
+                                )}
                               </div>
-                            )}
-                            <div className="flex flex-wrap gap-2 items-center">
-                              <select
-                                className="form-input text-sm py-1.5"
-                                value={inputMode}
-                                onChange={e => {
-                                  setInputMode(e.target.value)
-                                  setHeadcountValue('')
-                                }}
+                            </div>
+
+                            {/* Headcount Display (when not editing) */}
+                            {!isEditing && (
+                              <button
+                                onClick={() => startEditing(a)}
+                                className="flex-shrink-0 text-center min-w-[70px] p-2 rounded-lg bg-slate-50 hover:bg-slate-100 transition-colors"
                               >
-                                <option value="percentage">% Full</option>
-                                <option value="exact">Exact Count</option>
-                              </select>
-                              <div className="relative">
+                                {headcount ? (
+                                  <>
+                                    <div className={`text-lg font-bold ${headcount.isPercent ? 'text-blue-600' : 'text-slate-700'}`}>
+                                      {headcount.value}{headcount.isPercent ? '%' : ''}
+                                    </div>
+                                    <div className="text-[10px] text-slate-500 uppercase tracking-wide">
+                                      {headcount.isPercent ? (headcount.estimated ? `~${headcount.estimated}` : 'est') : 'count'}
+                                    </div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="text-lg font-bold text-slate-300">--</div>
+                                    <div className="text-[10px] text-slate-400 uppercase tracking-wide">Add</div>
+                                  </>
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Edit Headcount Panel */}
+                        {isEditing && (
+                          <div className="bg-slate-50 border-t border-slate-200 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <span className="text-sm font-medium text-slate-700">Update Headcount</span>
+                              {a.room_capacity && (
+                                <span className="text-xs text-slate-500 bg-white px-2 py-1 rounded-md">
+                                  Capacity: {a.room_capacity}
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex gap-2 mb-3">
+                              <button
+                                onClick={() => { setInputMode('percentage'); setHeadcountValue('') }}
+                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                                  inputMode === 'percentage'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                % Full
+                              </button>
+                              <button
+                                onClick={() => { setInputMode('exact'); setHeadcountValue('') }}
+                                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                                  inputMode === 'exact'
+                                    ? 'bg-emerald-600 text-white'
+                                    : 'bg-white border border-slate-300 text-slate-600 hover:bg-slate-50'
+                                }`}
+                              >
+                                Exact #
+                              </button>
+                            </div>
+
+                            <div className="flex gap-2">
+                              <div className="flex-1 relative">
                                 <input
                                   type="number"
-                                  className="form-input w-20 md:w-24 text-sm py-1.5 pr-6"
+                                  inputMode="numeric"
+                                  className="w-full px-4 py-3 bg-white border border-slate-300 rounded-xl text-lg font-semibold text-center focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                   placeholder={inputMode === 'percentage' ? '0-100' : 'Count'}
                                   value={headcountValue}
                                   onChange={e => setHeadcountValue(e.target.value)}
                                   min="0"
                                   max={inputMode === 'percentage' ? '100' : undefined}
+                                  autoFocus
                                 />
                                 {inputMode === 'percentage' && (
-                                  <span className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-semibold">%</span>
                                 )}
                               </div>
-                              {inputMode === 'percentage' && headcountValue && a.room_capacity && (
-                                <span className="text-xs text-slate-500">
-                                  ≈ {Math.round((parseInt(headcountValue) / 100) * a.room_capacity)}
-                                </span>
-                              )}
                             </div>
-                            <div className="flex gap-2">
+
+                            {inputMode === 'percentage' && headcountValue && a.room_capacity && (
+                              <div className="mt-2 text-center text-sm text-slate-500">
+                                ≈ <strong>{Math.round((parseInt(headcountValue) / 100) * a.room_capacity)}</strong> people
+                              </div>
+                            )}
+
+                            <div className="flex gap-2 mt-4">
                               <button
-                                className="btn btn-primary btn-sm"
-                                onClick={() => updateHeadcount(a.session_id)}
-                              >
-                                Save
-                              </button>
-                              <button
-                                className="btn btn-outline btn-sm"
-                                onClick={() => setEditingHeadcount(null)}
+                                onClick={() => setEditingId(null)}
+                                className="flex-1 py-2.5 px-4 bg-white border border-slate-300 rounded-xl text-slate-600 font-medium hover:bg-slate-50 transition-colors"
                               >
                                 Cancel
                               </button>
+                              <button
+                                onClick={() => saveHeadcount(a.session_id)}
+                                disabled={saving || !headcountValue}
+                                className="flex-1 py-2.5 px-4 bg-emerald-600 text-white rounded-xl font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {saving ? 'Saving...' : 'Save'}
+                              </button>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <div className="text-right">
-                              <span className="text-xs text-slate-500 block">Headcount</span>
-                              {(() => {
-                                const display = getHeadcountDisplay(a)
-                                if (!display) {
-                                  return <span className="text-lg font-semibold text-slate-400">-</span>
-                                }
-                                if (display.type === 'percentage') {
-                                  return (
-                                    <div>
-                                      <span className="text-lg font-semibold text-blue-600">{display.value}%</span>
-                                      {display.estimated !== null && (
-                                        <span className="text-xs text-slate-500 block">≈ {display.estimated}</span>
-                                      )}
-                                    </div>
-                                  )
-                                }
-                                return <span className="text-lg font-semibold text-slate-700">{display.value}</span>
-                              })()}
-                            </div>
-                            <button
-                              className="btn btn-outline btn-sm"
-                              onClick={() => startEditing(a)}
-                            >
-                              Update
-                            </button>
                           </div>
                         )}
                       </div>
-                    </div>
-                  </div>
-                ))}
+                    )
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       )}
 
+      {/* Tip */}
       {assignments.length > 0 && (
-        <div className="mt-8 p-4 bg-emerald-50 rounded-lg border border-emerald-200">
-          <p className="text-sm text-emerald-800 m-0">
-            <strong>Tip:</strong> After each session, update the headcount to help track attendance.
-          </p>
+        <div className="mt-8 flex items-start gap-3 p-4 bg-blue-50 rounded-xl border border-blue-100">
+          <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div className="text-sm text-blue-800">
+            <strong>Tip:</strong> Tap the headcount box to update attendance after each session.
+          </div>
         </div>
       )}
     </div>
