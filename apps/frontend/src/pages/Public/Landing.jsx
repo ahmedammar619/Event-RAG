@@ -11,7 +11,7 @@ export default function Landing() {
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-slate-800 to-blue-600">
       {/* Platform Header */}
       <header className="w-full py-4 px-6 flex items-center justify-center gap-3 bg-slate-900/50 backdrop-blur-sm border-b border-white/10">
-        <img src="/logo.png?2" alt="Vewoz" className="w-24 h-24 lg:w-32 lg:h-32 object-contain" />
+        <img src="/logo.png?3" alt="Vewoz" className="w-24 h-24 lg:w-32 lg:h-32 object-contain" />
         <span className="text-white font-bold text-4xl">Vewoz</span>
       </header>
 
@@ -19,7 +19,7 @@ export default function Landing() {
         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 md:p-10 max-w-3xl w-full shadow-xl border border-white/20">
           {/* Event Header with MASCON logo */}
           <div className="flex items-center justify-center gap-4 mb-6">
-            <img src="/mascon-logo.png" alt="MASCON 2025" className="w-16 h-16 md:w-20 md:h-20 object-contain" />
+            <img src="/mascon-logo.png?3" alt="MASCON 2025" className="w-16 h-16 md:w-20 md:h-20 object-contain" />
             <div className="text-left">
               <h1 className="text-2xl md:text-3xl font-bold text-white m-0">MASCON 2025</h1>
               <h2 className="text-sm md:text-base font-normal text-white/90 m-0">Moderation System</h2>
