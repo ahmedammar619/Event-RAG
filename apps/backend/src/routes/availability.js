@@ -30,7 +30,13 @@ export default async function availabilityRoutes(fastify, options) {
       throw validationError('moderator_id, event_day_id, start_time, and end_time are required');
     }
 
-    if (start_time >= end_time) {
+    // Helper to normalize time to HH:MM format for comparison
+    const normalizeTime = (time) => time ? time.slice(0, 5) : '';
+
+    const slotStart = normalizeTime(start_time);
+    const slotEnd = normalizeTime(end_time);
+
+    if (slotStart >= slotEnd) {
       throw validationError('Start time must be before end time');
     }
 
@@ -47,8 +53,11 @@ export default async function availabilityRoutes(fastify, options) {
     }
 
     const eventDay = day.rows[0];
-    if (start_time < eventDay.start_time || end_time > eventDay.end_time) {
-      throw validationError(`Availability must be within event day hours (${eventDay.start_time} - ${eventDay.end_time})`);
+    const dayStart = normalizeTime(eventDay.start_time);
+    const dayEnd = normalizeTime(eventDay.end_time);
+
+    if (slotStart < dayStart || slotEnd > dayEnd) {
+      throw validationError(`Availability must be within event day hours (${dayStart} - ${dayEnd})`);
     }
 
     const result = await db.query(
@@ -76,6 +85,12 @@ export default async function availabilityRoutes(fastify, options) {
       throw notFound('Moderator');
     }
 
+    // Helper to normalize time to HH:MM format for comparison
+    const normalizeTime = (time) => {
+      if (!time) return '';
+      return time.slice(0, 5); // Get just HH:MM
+    };
+
     // Delete existing availability for this moderator
     await db.query('DELETE FROM availability WHERE moderator_id = $1', [moderator_id]);
 
@@ -92,8 +107,13 @@ export default async function availabilityRoutes(fastify, options) {
         }
 
         const eventDay = day.rows[0];
-        if (slot.start_time < eventDay.start_time || slot.end_time > eventDay.end_time) {
-          throw new Error(`Time must be within ${eventDay.start_time} - ${eventDay.end_time}`);
+        const slotStart = normalizeTime(slot.start_time);
+        const slotEnd = normalizeTime(slot.end_time);
+        const dayStart = normalizeTime(eventDay.start_time);
+        const dayEnd = normalizeTime(eventDay.end_time);
+
+        if (slotStart < dayStart || slotEnd > dayEnd) {
+          throw new Error(`Time must be within ${dayStart} - ${dayEnd}`);
         }
 
         const result = await db.query(
