@@ -227,16 +227,16 @@ export default function Export() {
       </div>
 
       {/* Export All Button */}
-      <div className="card mb-6 p-6 bg-gradient-to-r from-teal-600 to-teal-700 text-white">
+      <div className="card mb-6 p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-xl font-bold mb-1">Export All Data</h2>
-            <p className="text-teal-100 text-sm">Download all tables as separate CSV files</p>
+            <p className="text-blue-100 text-sm">Download all tables as separate CSV files</p>
           </div>
           <button
             onClick={exportAll}
             disabled={loading.all}
-            className="px-6 py-3 bg-white text-teal-600 rounded-xl font-semibold hover:bg-teal-50 transition-colors disabled:opacity-50"
+            className="px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50"
           >
             {loading.all ? 'Exporting...' : 'Export All'}
           </button>
@@ -248,7 +248,7 @@ export default function Export() {
         {exports.map(exp => (
           <div key={exp.key} className="card p-5 flex flex-col">
             <div className="flex items-start gap-4 mb-4">
-              <div className="p-3 bg-teal-50 text-teal-600 rounded-xl">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
                 {exp.icon}
               </div>
               <div className="flex-1">
@@ -259,7 +259,7 @@ export default function Export() {
             <button
               onClick={exp.action}
               disabled={loading[exp.key]}
-              className="mt-auto w-full py-2.5 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50"
+              className="mt-auto w-full py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50"
             >
               {loading[exp.key] ? 'Downloading...' : 'Download CSV'}
             </button>

@@ -1,19 +1,23 @@
 services:
   frontend:
     build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: apps/frontend/Dockerfile.dev
     ports:
       - "3000:3000"
+    stdin_open: true
+    tty: true
     environment:
       - VITE_API_URL=http://localhost:3001
       - CHOKIDAR_USEPOLLING=true
+      - CHOKIDAR_INTERVAL=100
     volumes:
-      - ./apps/frontend/src:/app/src
-      - ./apps/frontend/index.html:/app/index.html
-      - ./apps/frontend/vite.config.js:/app/vite.config.js
-      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js
-      - ./apps/frontend/postcss.config.js:/app/postcss.config.js
+      - ./apps/frontend/src:/app/src:delegated
+      - ./apps/frontend/public:/app/public:delegated
+      - ./apps/frontend/index.html:/app/index.html:delegated
+      - ./apps/frontend/vite.config.js:/app/vite.config.js:delegated
+      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js:delegated
+      - ./apps/frontend/postcss.config.js:/app/postcss.config.js:delegated
     depends_on:
       - backend
     networks:
@@ -21,10 +25,12 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile.dev
+      context: .
+      dockerfile: apps/backend/Dockerfile.dev
     ports:
       - "3001:3001"
+    stdin_open: true
+    tty: true
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - PORT=3001
@@ -32,8 +38,8 @@ services:
       - CORS_ORIGIN=http://localhost:3000
       - JWT_SECRET=${JWT_SECRET:-dev-secret-change-in-production}
     volumes:
-      - ./apps/backend/src:/app/src
-      - ./apps/backend/scripts:/app/scripts
+      - ./apps/backend/src:/app/src:delegated
+      - ./apps/backend/scripts:/app/scripts:delegated
     networks:
       - app-network
 
