@@ -56,7 +56,7 @@ export const sessionsService = {
   getById: (id) => api.get(`/sessions/${id}`),
   create: (data) => api.post('/sessions', data),
   update: (id, data) => api.put(`/sessions/${id}`, data),
-  updateHeadcount: (id, headcount) => api.patch(`/sessions/${id}/headcount`, { headcount }),
+  updateHeadcount: (id, data) => api.patch(`/sessions/${id}/headcount`, data),
   delete: (id) => api.delete(`/sessions/${id}`),
   bulkCreate: (sessions) => api.post('/sessions/bulk', { sessions })
 }

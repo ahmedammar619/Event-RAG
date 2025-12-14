@@ -83,8 +83,10 @@ export default async function assignmentsRoutes(fastify, options) {
         s.start_time,
         s.end_time,
         s.headcount,
+        s.headcount_percentage,
         ed.date,
-        r.name as room_name
+        r.name as room_name,
+        r.capacity as room_capacity
       FROM assignments a
       JOIN sessions s ON a.session_id = s.id
       JOIN event_days ed ON s.event_day_id = ed.id
