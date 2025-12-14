@@ -1,12 +1,14 @@
-# Moderation System
+# Vewoz Moderation System | MASCON
 
-Moderation System Platform for MASCON Annual Event in Chicago. This platform helps coordinate volunteer moderators across event sessions with automated scheduling and assignment.
+Volunteer moderator coordination platform for the MASCON Annual Event in Chicago. This platform helps coordinate volunteer moderators across event sessions with automated scheduling and assignment.
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Features](#features)
 - [Tech Stack](#tech-stack)
+- [Quick Start](#quick-start)
+- [Documentation](#documentation)
 - [Project Structure](#project-structure)
 - [Database Schema](#database-schema)
 - [API Endpoints](#api-endpoints)
@@ -35,22 +37,25 @@ This platform solves the challenge of coordinating volunteer moderators for even
 ## Features
 
 ### For Admins
-- Set available event days
-- Define operating hours per day (threshold)
-- Create/edit/delete sessions (name, time, room, date)
+- Set available event days with operating hours
+- Create/edit/delete rooms with capacity
+- Create/edit/delete sessions (name, time, room, date, moderators needed)
 - View all registered moderators and their availability
-- Run auto-assignment algorithm
+- Run auto-assignment algorithm with smart distribution
 - Manual assignment overrides
-- Export assignments
+- Export all data to CSV (moderators, sessions, assignments, etc.)
+- Reset event data (danger zone) with double confirmation
+- Dashboard with real-time statistics
 
 ### For Moderators
-- Register with name, phone number, email
+- Register with name, email, phone (US format auto-formatting)
 - Dedicated portal with sidebar navigation
 - **Schedule tab**: View assigned sessions with times and rooms
 - **Availability tab**: Set availability per day with 12-hour AM/PM time format
 - Set schedule preference (back-to-back, spread out, or flexible)
 - Update headcount for sessions (exact count or percentage of room capacity)
 - Persistent sessions - stay logged in without timeout
+- Email lookup for returning moderators
 
 ---
 
@@ -64,6 +69,56 @@ This platform solves the challenge of coordinating volunteer moderators for even
 | **Monorepo** | Nx |
 | **Containerization** | Docker (2 containers: frontend, backend) |
 | **Deployment** | Railway |
+| **Styling** | Tailwind CSS |
+
+---
+
+## Quick Start
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd moderation-system
+
+# Install dependencies
+npm install
+cd apps/frontend && npm install && cd ../..
+
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your DATABASE_URL and JWT_SECRET
+
+# Start development environment
+./dev.sh
+
+# Access the application
+# Frontend: http://localhost:3000
+# Backend: http://localhost:3001
+```
+
+### Default Admin Login
+- Username: `admin`
+- Password: `admin123`
+
+---
+
+## Documentation
+
+Detailed documentation is available in the `context/` directory:
+
+| Document | Description |
+|----------|-------------|
+| [overview.md](context/overview.md) | Project goals, problem/solution, key users |
+| [frontend.md](context/frontend.md) | React architecture, routing, components |
+| [backend.md](context/backend.md) | Fastify API, routes, middleware |
+| [database.md](context/database.md) | PostgreSQL schema, tables, queries |
+| [api.md](context/api.md) | Complete API documentation |
+| [algorithm.md](context/algorithm.md) | Auto-assignment algorithm details |
+| [user-flows.md](context/user-flows.md) | Step-by-step user journeys |
+| [deployment.md](context/deployment.md) | Railway deployment guide |
+| [development.md](context/development.md) | Local development setup |
+| [styling.md](context/styling.md) | Tailwind CSS, theming, components |
+| [features.md](context/features.md) | Additional features (export, reset, etc.) |
 
 ---
 
@@ -329,7 +384,7 @@ CREATE INDEX idx_assignments_moderator ON assignments(moderator_id);
 ### Prerequisites
 - Node.js 18+
 - Docker & Docker Compose
-- npm or yarn
+- npm
 
 ### Setup
 
@@ -342,41 +397,49 @@ cd moderation-system
 2. **Install dependencies**
 ```bash
 npm install
+cd apps/frontend && npm install && cd ../..
 ```
 
 3. **Create environment file**
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your DATABASE_URL and JWT_SECRET
 ```
 
 4. **Start development servers**
 ```bash
-# Start both frontend and backend
-npm run dev
+# Using the dev script (recommended)
+./dev.sh
 
-# Or start individually
-npm run dev:frontend
-npm run dev:backend
+# This runs:
+# - Backend in Docker on port 3001
+# - Frontend locally with Vite on port 3000 (with hot reload)
 ```
 
-### Nx Commands
+### Seed Database
+
 ```bash
-# Run frontend
-npx nx serve frontend
-
-# Run backend
-npx nx serve backend
-
-# Build all
-npx nx run-many --target=build --all
-
-# Run tests
-npx nx run-many --target=test --all
-
-# Lint
-npx nx run-many --target=lint --all
+docker compose -f docker-compose.dev.yml exec backend node scripts/seed.js
 ```
+
+### Common Commands
+
+```bash
+# View backend logs
+docker compose -f docker-compose.dev.yml logs -f backend
+
+# Restart backend
+docker compose -f docker-compose.dev.yml restart backend
+
+# Stop all services
+docker compose -f docker-compose.dev.yml down
+
+# Kill processes on ports
+lsof -ti:3000 | xargs kill -9
+lsof -ti:3001 | xargs kill -9
+```
+
+For detailed development setup, see [context/development.md](context/development.md).
 
 ---
 
@@ -394,8 +457,8 @@ version: '3.8'
 services:
   frontend:
     build:
-      context: ./apps/frontend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/frontend/Dockerfile
     ports:
       - "3000:3000"
     environment:
@@ -405,15 +468,18 @@ services:
 
   backend:
     build:
-      context: ./apps/backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: apps/backend/Dockerfile
     ports:
       - "3001:3001"
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - PORT=3001
+      - JWT_SECRET=${JWT_SECRET}
       - CORS_ORIGIN=http://localhost:3000
 ```
+
+**Note:** Context is set to root (`.`) for monorepo compatibility.
 
 ### Frontend Dockerfile (`apps/frontend/Dockerfile`)
 ```dockerfile
@@ -561,4 +627,6 @@ Apache License 2.0 - See [LICENSE](LICENSE) file for details.
 
 ## Contact
 
-For questions about the MASCON Annual Event moderation system, contact the event organizers.
+- **Platform**: [Vewoz](https://vewoz.com)
+- **Developer**: [Ahmed Ammar](https://ahmedammar.dev?mascon)
+- **Event**: MASCON Annual Event, Chicago
