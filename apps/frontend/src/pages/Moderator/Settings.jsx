@@ -174,7 +174,7 @@ export default function Settings() {
   const totalSlots = Object.values(availability).reduce((sum, slots) => sum + slots.length, 0)
 
   return (
-    <div className="max-w-3xl mx-auto pb-24">
+    <div className="max-w-3xl mx-auto">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-slate-900 mb-1">My Availability</h1>
         <p className="text-slate-500">Select the times you can volunteer each day</p>
@@ -335,35 +335,23 @@ export default function Settings() {
                 </button>
               ))}
             </div>
+
+            {/* Save Button - Only shows when there are changes */}
+            {hasChanges && (
+              <div className="mt-4 pt-4 border-t border-slate-200">
+                <button
+                  onClick={handleSubmit}
+                  disabled={saving}
+                  className="w-full py-3 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            )}
           </div>
         </>
       )}
 
-      {/* Sticky Save Button */}
-      {days.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 lg:left-64 bg-white border-t border-slate-200 p-4 shadow-lg">
-          <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
-            <div className="text-sm text-slate-500">
-              {hasChanges ? (
-                <span className="text-amber-600 font-medium">You have unsaved changes</span>
-              ) : (
-                <span>All changes saved</span>
-              )}
-            </div>
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !hasChanges}
-              className={`px-6 py-2.5 rounded-lg font-medium transition-all ${
-                hasChanges
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg shadow-emerald-200'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              {saving ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
