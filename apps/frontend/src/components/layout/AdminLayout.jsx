@@ -108,7 +108,7 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        <div className="flex-1 p-4 lg:p-8 mt-20 lg:mt-0">
+        <div className="flex-1 p-4 lg:p-8 mt-28 lg:mt-0">
           <Outlet />
         </div>
 
