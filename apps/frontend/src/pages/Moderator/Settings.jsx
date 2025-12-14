@@ -233,11 +233,11 @@ export default function Settings() {
               return (
                 <div key={day.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
                   {/* Day Header */}
-                  <div className="bg-emerald-600 px-4 py-3">
+                  <div className="bg-teal-600 px-4 py-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <div className="font-semibold text-white">{formatDate(day.date)}</div>
-                        <div className="text-emerald-100 text-xs mt-0.5">
+                        <div className="text-teal-100 text-xs mt-0.5">
                           {formatTime12(day.start_time.slice(0, 5))} - {formatTime12(day.end_time.slice(0, 5))}
                         </div>
                       </div>
@@ -265,7 +265,7 @@ export default function Settings() {
                     {!hasSlots ? (
                       <button
                         onClick={() => addSlot(day.id)}
-                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-teal-400 hover:text-teal-600 transition-colors flex items-center justify-center gap-2"
                       >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -278,7 +278,7 @@ export default function Settings() {
                           <div key={index} className="flex items-center gap-2 p-3 bg-slate-50 rounded-xl">
                             <div className="flex-1 grid grid-cols-2 gap-2">
                               <select
-                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                 value={slot.start_time}
                                 onChange={e => updateSlot(day.id, index, 'start_time', e.target.value)}
                               >
@@ -287,7 +287,7 @@ export default function Settings() {
                                 ))}
                               </select>
                               <select
-                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                                className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm font-medium focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
                                 value={slot.end_time}
                                 onChange={e => updateSlot(day.id, index, 'end_time', e.target.value)}
                               >
@@ -308,7 +308,7 @@ export default function Settings() {
                         ))}
                         <button
                           onClick={() => addSlot(day.id)}
-                          className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-emerald-400 hover:text-emerald-600 transition-colors text-sm font-medium"
+                          className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-teal-400 hover:text-teal-600 transition-colors text-sm font-medium"
                         >
                           + Add Another
                         </button>
@@ -336,11 +336,11 @@ export default function Settings() {
                   onClick={() => handlePreferenceChange(opt.value)}
                   className={`p-3 rounded-xl border-2 text-center transition-all ${
                     schedulePreference === opt.value
-                      ? 'border-emerald-500 bg-emerald-50'
+                      ? 'border-teal-500 bg-teal-50'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
-                  <div className={`text-sm font-semibold ${schedulePreference === opt.value ? 'text-emerald-700' : 'text-slate-700'}`}>
+                  <div className={`text-sm font-semibold ${schedulePreference === opt.value ? 'text-teal-700' : 'text-slate-700'}`}>
                     {opt.label}
                   </div>
                   <div className="text-[10px] text-slate-500 mt-0.5">{opt.desc}</div>
@@ -355,7 +355,7 @@ export default function Settings() {
               <button
                 onClick={handleSubmit}
                 disabled={saving}
-                className="w-full py-4 bg-emerald-600 text-white rounded-xl font-semibold shadow-lg hover:bg-emerald-700 transition-colors disabled:opacity-50"
+                className="w-full py-4 bg-teal-600 text-white rounded-xl font-semibold shadow-lg hover:bg-teal-700 transition-colors disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>

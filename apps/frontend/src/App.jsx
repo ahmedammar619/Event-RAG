@@ -16,6 +16,7 @@ import Rooms from './pages/Admin/Rooms'
 import Sessions from './pages/Admin/Sessions'
 import Moderators from './pages/Admin/Moderators'
 import Assignments from './pages/Admin/Assignments'
+import Export from './pages/Admin/Export'
 
 // Moderator pages
 import ModeratorLayout from './components/layout/ModeratorLayout'
@@ -74,6 +75,7 @@ function App() {
         <Route path="sessions" element={<Sessions />} />
         <Route path="moderators" element={<Moderators />} />
         <Route path="assignments" element={<Assignments />} />
+        <Route path="export" element={<Export />} />
       </Route>
 
       {/* Moderator Portal Routes */}

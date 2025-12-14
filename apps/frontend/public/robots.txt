@@ -1,0 +1,24 @@
+# Block all search engines from indexing this site
+User-agent: *
+Disallow: /
+
+# Block specific search engines
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Bingbot
+Disallow: /
+
+User-agent: Yahoo! Slurp
+Disallow: /
+
+User-agent: DuckDuckBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+# No sitemap - site should not be indexed
