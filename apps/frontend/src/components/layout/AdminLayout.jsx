@@ -33,7 +33,7 @@ export default function AdminLayout() {
           ☰
         </button>
         <div className="flex items-center gap-2">
-          <img src="/logo.png?1" alt="Vewoz" className="w-12 h-12 object-contain" />
+          <img src="/logo.png?1" alt="Vewoz" className="w-16 h-16 object-contain" />
           <span className="font-semibold text-lg">Vewoz | MASCON</span>
         </div>
         <div className="w-8 h-8 bg-white/20 text-white rounded-full flex items-center justify-center text-sm font-semibold">
@@ -108,7 +108,7 @@ export default function AdminLayout() {
 
       {/* Main Content */}
       <main className="flex-1 lg:ml-64 flex flex-col min-h-screen">
-        <div className="flex-1 p-4 lg:p-8 mt-16 lg:mt-0">
+        <div className="flex-1 p-4 lg:p-8 mt-20 lg:mt-0">
           <Outlet />
         </div>
 
