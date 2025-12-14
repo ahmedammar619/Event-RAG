@@ -102,7 +102,7 @@ export default function ModeratorLayout() {
 
       {/* Main Content */}
       <main className="lg:ml-64 min-h-screen pb-24 lg:pb-0">
-        <div className="pt-24 lg:pt-8 px-4 pb-6 lg:px-8 max-w-4xl mx-auto">
+        <div className="pt-28 lg:pt-8 px-4 pb-6 lg:px-8 max-w-4xl mx-auto">
           <Outlet />
         </div>
       </main>
