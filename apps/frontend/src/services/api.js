@@ -32,7 +32,8 @@ export default api
 export const adminService = {
   login: (username, password) => api.post('/admin/login', { username, password }),
   getDashboard: () => api.get('/admin/dashboard'),
-  getMe: () => api.get('/admin/me')
+  getMe: () => api.get('/admin/me'),
+  resetEventData: (confirmation) => api.delete('/admin/reset-event-data', { data: { confirmation } })
 }
 
 export const daysService = {

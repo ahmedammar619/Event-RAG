@@ -1,10 +1,14 @@
 import { useState } from 'react'
-import { moderatorsService, sessionsService, assignmentsService, daysService, roomsService } from '../../services/api'
+import { moderatorsService, sessionsService, assignmentsService, daysService, roomsService, adminService } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
 
 export default function Export() {
   const toast = useToast()
   const [loading, setLoading] = useState({})
+  const [showResetModal, setShowResetModal] = useState(false)
+  const [resetStep, setResetStep] = useState(1)
+  const [confirmText, setConfirmText] = useState('')
+  const [resetLoading, setResetLoading] = useState(false)
 
   const downloadCSV = (data, filename) => {
     if (!data || data.length === 0) {
@@ -276,6 +280,221 @@ export default function Export() {
           <li>• Data is exported exactly as stored in the database</li>
         </ul>
       </div>
+
+      {/* Danger Zone */}
+      <div className="mt-10 p-6 bg-red-50 rounded-xl border-2 border-red-200">
+        <div className="flex items-start gap-4">
+          <div className="p-3 bg-red-100 text-red-600 rounded-xl">
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-red-800 mb-1">Danger Zone</h3>
+            <p className="text-red-700 text-sm mb-4">
+              Reset all event data to start fresh. This will permanently delete all moderators,
+              their availability, all sessions, rooms, and assignments. Admin accounts and event days
+              configuration will be preserved.
+            </p>
+            <button
+              onClick={() => {
+                setShowResetModal(true)
+                setResetStep(1)
+                setConfirmText('')
+              }}
+              className="px-4 py-2 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+            >
+              Reset All Event Data
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Reset Confirmation Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            {resetStep === 1 && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-blue-100 text-blue-600 rounded-full">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Backup Your Data First</h3>
+                </div>
+                <div className="mb-6">
+                  <p className="text-slate-600 mb-4">
+                    Before deleting, we recommend downloading a backup of all your data. This action <strong className="text-red-600">cannot be undone</strong>.
+                  </p>
+                  <div className="bg-slate-50 p-4 rounded-lg mb-4">
+                    <p className="text-sm text-slate-600 mb-3">Click below to download all data as CSV files:</p>
+                    <button
+                      onClick={async () => {
+                        setLoading(prev => ({ ...prev, backupAll: true }))
+                        try {
+                          await exportModerators()
+                          await exportSessions()
+                          await exportAssignments()
+                          await exportEventDays()
+                          await exportRooms()
+                          toast.success('All data exported successfully!')
+                        } finally {
+                          setLoading(prev => ({ ...prev, backupAll: false }))
+                        }
+                      }}
+                      disabled={loading.backupAll}
+                      className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                      </svg>
+                      {loading.backupAll ? 'Downloading...' : 'Download All Data (5 CSV files)'}
+                    </button>
+                  </div>
+                  <p className="text-sm text-slate-600 mb-2">This will permanently delete:</p>
+                  <ul className="text-sm text-slate-700 space-y-2 bg-red-50 p-4 rounded-lg mb-4">
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      All registered moderators
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      All moderator availability
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      All sessions
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      All rooms
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <svg className="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                      All assignments
+                    </li>
+                  </ul>
+                  <p className="text-sm text-slate-500">
+                    <strong>Preserved:</strong> Admin accounts and event days configuration
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowResetModal(false)}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => setResetStep(2)}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors"
+                  >
+                    Continue to Delete
+                  </button>
+                </div>
+              </>
+            )}
+
+            {resetStep === 2 && (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-red-100 text-red-600 rounded-full">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </div>
+                  <h3 className="text-xl font-bold text-slate-900">Final Confirmation</h3>
+                </div>
+                <div className="mb-6">
+                  {/* Last chance backup button */}
+                  <button
+                    onClick={async () => {
+                      setLoading(prev => ({ ...prev, backupAll: true }))
+                      try {
+                        await exportModerators()
+                        await exportSessions()
+                        await exportAssignments()
+                        await exportEventDays()
+                        await exportRooms()
+                        toast.success('All data exported successfully!')
+                      } finally {
+                        setLoading(prev => ({ ...prev, backupAll: false }))
+                      }
+                    }}
+                    disabled={loading.backupAll}
+                    className="w-full mb-4 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 border border-slate-200"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                    </svg>
+                    {loading.backupAll ? 'Downloading...' : 'Download Backup First'}
+                  </button>
+
+                  <p className="text-slate-600 mb-4">
+                    To confirm deletion, type <strong className="text-red-600 font-mono">DELETE ALL EVENT DATA</strong> below:
+                  </p>
+                  <input
+                    type="text"
+                    value={confirmText}
+                    onChange={(e) => setConfirmText(e.target.value)}
+                    placeholder="Type here to confirm..."
+                    className="w-full px-4 py-3 border-2 border-slate-200 rounded-lg focus:border-red-500 focus:ring-2 focus:ring-red-200 outline-none font-mono text-center"
+                    autoFocus
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setResetStep(1)
+                      setConfirmText('')
+                    }}
+                    className="flex-1 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 transition-colors"
+                  >
+                    Go Back
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (confirmText !== 'DELETE ALL EVENT DATA') {
+                        toast.error('Please type the confirmation text exactly')
+                        return
+                      }
+                      setResetLoading(true)
+                      try {
+                        const response = await adminService.resetEventData(confirmText)
+                        const deleted = response.data.data.deleted
+                        toast.success(`Deleted: ${deleted.moderators} moderators, ${deleted.sessions} sessions, ${deleted.rooms} rooms, ${deleted.assignments} assignments`)
+                        setShowResetModal(false)
+                        setResetStep(1)
+                        setConfirmText('')
+                      } catch (err) {
+                        toast.error(err.response?.data?.error?.message || 'Failed to reset data')
+                      } finally {
+                        setResetLoading(false)
+                      }
+                    }}
+                    disabled={confirmText !== 'DELETE ALL EVENT DATA' || resetLoading}
+                    className="flex-1 px-4 py-2.5 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {resetLoading ? 'Deleting...' : 'Delete Everything'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
