@@ -63,7 +63,7 @@ export default function Landing() {
                 </Link>
                 <Link
                   to="/lookup"
-                  className="btn btn-lg border border-white/30 text-white hover:bg-white/10 no-underline"
+                  className="btn btn-lg bg-white/20 text-white hover:bg-white/30 no-underline"
                 >
                   Already Registered?
                 </Link>
