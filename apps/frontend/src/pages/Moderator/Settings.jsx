@@ -122,7 +122,7 @@ export default function Settings() {
       ])
 
       await refresh()
-      setHasChanges(false)
+      await loadData()
       toast.success('Availability saved!')
     } catch (err) {
       toast.error(err.response?.data?.error?.message || 'Failed to save')
