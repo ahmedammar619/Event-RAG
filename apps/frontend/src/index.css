@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Vewoz Brand Font */
+@font-face {
+  font-family: 'SuperAdorable';
+  src: url('/super-adorable-font/SuperAdorable-MAvyp.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
+
+.vewoz-logo {
+  font-family: 'SuperAdorable', cursive;
+  color: #009fe2;
+  letter-spacing: 0.02em;
+}
+
 @layer base {
   body {
     @apply font-sans bg-slate-50 text-slate-800 leading-relaxed;
