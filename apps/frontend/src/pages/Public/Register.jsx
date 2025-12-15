@@ -98,8 +98,8 @@ export default function Register() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold mb-2">Volunteer Registration</h1>
-              <p className="text-slate-500">Register as a moderator volunteer for MASCON 2025</p>
+              <h1 className="text-2xl font-semibold mb-2">Moderator Registration</h1>
+              <p className="text-slate-500">Register as a moderator for MASCON 2025</p>
             </div>
 
             <form onSubmit={handleSubmit}>

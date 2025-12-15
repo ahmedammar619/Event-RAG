@@ -85,7 +85,7 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold">Registration Link</h3>
           </div>
           <p className="text-sm text-slate-500 mb-4">
-            Share this link with volunteers to let them register and input their availability.
+            Share this link with moderators to let them register and input their availability.
           </p>
           <div className="flex flex-col sm:flex-row gap-2">
             <input

@@ -23,8 +23,8 @@ export default function Landing() {
             </div>
           </div>
           <p className="text-lg text-slate-600 mb-8 leading-relaxed text-center">
-            Help us coordinate volunteer moderators for the annual MASCON event in Chicago.
-            Register as a volunteer and input your availability.
+            Help us coordinate moderators for the annual MASCON event in Chicago.
+            Register as a moderator and input your availability.
           </p>
 
           {isModeratorLoggedIn ? (
@@ -56,7 +56,7 @@ export default function Landing() {
                   to="/register"
                   className="btn btn-lg bg-blue-600 text-white hover:bg-blue-700 no-underline"
                 >
-                  Register as Volunteer
+                  Register as Moderator
                 </Link>
                 <Link
                   to="/lookup"
@@ -75,7 +75,7 @@ export default function Landing() {
             </div>
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
               <h3 className="text-slate-800 text-lg font-semibold mb-2">2. Set Availability</h3>
-              <p className="text-slate-500 text-sm">Select when you can volunteer each day</p>
+              <p className="text-slate-500 text-sm">Select when you can moderate each day</p>
             </div>
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-100">
               <h3 className="text-slate-800 text-lg font-semibold mb-2">3. Get Assigned</h3>

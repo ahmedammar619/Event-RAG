@@ -79,13 +79,13 @@ export default function Moderators() {
     <div>
       <div className="page-header">
         <h1>Moderators</h1>
-        <p>{moderators.length} registered volunteers</p>
+        <p>{moderators.length} registered moderators</p>
       </div>
 
       {moderators.length === 0 ? (
         <div className="empty-state card">
           <h3>No moderators registered</h3>
-          <p>Share the registration link with volunteers</p>
+          <p>Share the registration link with moderators</p>
         </div>
       ) : (
         <div className="card overflow-hidden">
