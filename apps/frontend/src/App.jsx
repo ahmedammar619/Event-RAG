@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { useModerator } from './context/ModeratorContext'
+import useAnalytics from './hooks/useAnalytics'
 
 // Public pages
 import Landing from './pages/Public/Landing'
@@ -17,6 +18,7 @@ import Sessions from './pages/Admin/Sessions'
 import Moderators from './pages/Admin/Moderators'
 import Assignments from './pages/Admin/Assignments'
 import Export from './pages/Admin/Export'
+import Analytics from './pages/Admin/Analytics'
 
 // Moderator pages
 import ModeratorLayout from './components/layout/ModeratorLayout'
@@ -51,9 +53,17 @@ function ModeratorProtectedRoute({ children }) {
   return children
 }
 
+function AnalyticsTracker() {
+  const { moderator } = useModerator()
+  useAnalytics(moderator?.id || null)
+  return null
+}
+
 function App() {
   return (
-    <Routes>
+    <>
+      <AnalyticsTracker />
+      <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
@@ -76,6 +86,7 @@ function App() {
         <Route path="moderators" element={<Moderators />} />
         <Route path="assignments" element={<Assignments />} />
         <Route path="export" element={<Export />} />
+        <Route path="analytics" element={<Analytics />} />
       </Route>
 
       {/* Moderator Portal Routes */}
@@ -94,6 +105,7 @@ function App() {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
 

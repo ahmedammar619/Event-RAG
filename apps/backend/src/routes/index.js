@@ -5,6 +5,7 @@ import sessionsRoutes from './sessions.js';
 import moderatorsRoutes from './moderators.js';
 import availabilityRoutes from './availability.js';
 import assignmentsRoutes from './assignments.js';
+import analyticsRoutes from './analytics.js';
 
 export default async function routes(fastify, options) {
   fastify.register(adminRoutes, { prefix: '/admin' });
@@ -14,4 +15,5 @@ export default async function routes(fastify, options) {
   fastify.register(moderatorsRoutes, { prefix: '/moderators' });
   fastify.register(availabilityRoutes, { prefix: '/availability' });
   fastify.register(assignmentsRoutes, { prefix: '/assignments' });
+  fastify.register(analyticsRoutes, { prefix: '/analytics' });
 }
