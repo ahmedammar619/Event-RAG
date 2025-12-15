@@ -7,11 +7,8 @@ export default function Footer({ variant = 'default' }) {
   const isPortalRoute = location.pathname.startsWith('/portal')
 
   const getPortalLink = () => {
-    if (isAdminRoute) {
-      return { to: '/portal', label: 'Moderator Portal' }
-    }
-    if (isPortalRoute) {
-      return { to: '/admin/login', label: 'Admin' }
+    if (isAdminRoute || isPortalRoute) {
+      return { to: '/', label: 'Home' }
     }
     return { to: '/admin/login', label: 'Admin' }
   }

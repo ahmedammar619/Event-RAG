@@ -1,6 +1,6 @@
 # Vewoz Moderation System | MASCON
 
-Volunteer moderator coordination platform for the MASCON Annual Event in Chicago. This platform helps coordinate volunteer moderators across event sessions with automated scheduling and assignment.
+Volunteer coordination platform for the MASCON Annual Event in Chicago. This platform helps coordinate volunteers across event sessions with automated scheduling and assignment.
 
 ## Table of Contents
 
