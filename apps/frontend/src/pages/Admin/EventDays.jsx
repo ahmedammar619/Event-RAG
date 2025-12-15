@@ -90,12 +90,12 @@ export default function EventDays() {
 
   return (
     <div>
-      <div className="page-header flex justify-between items-center">
+      <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1>Event Days</h1>
           <p>Manage the days when the event takes place</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openModal()}>
+        <button className="btn btn-primary w-full sm:w-auto" onClick={() => openModal()}>
           + Add Day
         </button>
       </div>
@@ -109,7 +109,8 @@ export default function EventDays() {
           </button>
         </div>
       ) : (
-        <div className="table-container card">
+        <div className="card table-card">
+          <div className="table-container">
           <table className="table">
             <thead>
               <tr>
@@ -141,6 +142,7 @@ export default function EventDays() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 

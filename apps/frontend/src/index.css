@@ -18,6 +18,10 @@
 }
 
 @layer base {
+  html, body {
+    @apply overflow-x-hidden;
+  }
+
   body {
     @apply font-sans bg-slate-50 text-slate-800 leading-relaxed;
   }
@@ -112,23 +116,54 @@
   /* Tables */
   .table-container {
     @apply overflow-x-auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
   }
 
   .table {
     @apply w-full border-collapse;
+    min-width: 600px;
+  }
+
+  /* Card with table - remove padding so table can scroll edge-to-edge */
+  .card.table-card {
+    @apply p-0 overflow-hidden;
+  }
+
+  .card.table-card .table-container {
+    @apply px-0;
+  }
+
+  .card.table-card .table th:first-child,
+  .card.table-card .table td:first-child {
+    @apply pl-6;
+  }
+
+  .card.table-card .table th:last-child,
+  .card.table-card .table td:last-child {
+    @apply pr-6;
   }
 
   .table th,
   .table td {
-    @apply text-left px-4 py-3 border-b border-slate-200;
+    @apply text-left px-3 py-3 border-b border-slate-200 text-sm;
   }
 
   .table th {
-    @apply font-semibold text-xs uppercase tracking-wider text-slate-500 bg-slate-50;
+    @apply font-semibold text-xs uppercase tracking-wider text-slate-500 bg-slate-50 whitespace-nowrap;
   }
 
   .table tr:hover {
     @apply bg-slate-50;
+  }
+
+  .table td {
+    @apply align-middle;
+  }
+
+  /* Mobile-friendly table wrapper */
+  .table-responsive {
+    @apply overflow-x-auto -mx-6 px-6 sm:mx-0 sm:px-0;
   }
 
   /* Stats */

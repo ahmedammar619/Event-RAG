@@ -45,7 +45,7 @@ export default function Analytics() {
         <select
           value={days}
           onChange={(e) => setDays(parseInt(e.target.value))}
-          className="form-input w-auto"
+          className="form-input w-full sm:w-auto"
         >
           <option value={7}>Last 7 days</option>
           <option value={30}>Last 30 days</option>
@@ -145,7 +145,7 @@ export default function Analytics() {
       {dailyVisits.length > 0 && (
         <div className="card mb-6">
           <h3 className="text-lg font-semibold mb-4">Daily Visits</h3>
-          <div className="overflow-x-auto">
+          <div className="table-container">
             <table className="table">
               <thead>
                 <tr>
@@ -156,7 +156,7 @@ export default function Analytics() {
               </thead>
               <tbody>
                 {dailyVisits.slice(0, 14).map((day, i) => (
-                  <tr key={i}>
+                  <tr key={day.date || i}>
                     <td>{new Date(day.date).toLocaleDateString()}</td>
                     <td>{day.visits}</td>
                     <td>{day.unique_visitors}</td>
@@ -171,16 +171,16 @@ export default function Analytics() {
       {/* Recent Activity */}
       <div className="card">
         <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-        <div className="overflow-x-auto max-h-96">
+        <div className="table-container max-h-96 overflow-y-auto">
           <table className="table">
             <thead>
               <tr>
                 <th>Time</th>
                 <th>Page</th>
-                <th>User</th>
+                <th className="hidden sm:table-cell">User</th>
                 <th>Device</th>
-                <th>Browser</th>
-                <th>IP</th>
+                <th className="hidden md:table-cell">Browser</th>
+                <th className="hidden lg:table-cell">IP</th>
               </tr>
             </thead>
             <tbody>
@@ -190,17 +190,17 @@ export default function Analytics() {
                 </tr>
               ) : (
                 analytics.map((item, i) => (
-                  <tr key={i}>
-                    <td className="whitespace-nowrap text-sm">
-                      {new Date(item.created_at).toLocaleString()}
+                  <tr key={item.id || i}>
+                    <td className="whitespace-nowrap">
+                      {new Date(item.created_at).toLocaleDateString()}
                     </td>
-                    <td className="text-sm max-w-[150px] truncate">{item.current_page}</td>
-                    <td className="text-sm">
+                    <td className="max-w-[120px] truncate">{item.current_page}</td>
+                    <td className="hidden sm:table-cell">
                       {item.user_name || <span className="text-slate-400">Guest</span>}
                     </td>
-                    <td className="text-sm capitalize">{item.device_type}</td>
-                    <td className="text-sm">{item.browser}</td>
-                    <td className="text-sm font-mono text-xs">{item.ip_address}</td>
+                    <td className="capitalize">{item.device_type}</td>
+                    <td className="hidden md:table-cell">{item.browser}</td>
+                    <td className="hidden lg:table-cell font-mono text-xs">{item.ip_address}</td>
                   </tr>
                 ))
               )}
