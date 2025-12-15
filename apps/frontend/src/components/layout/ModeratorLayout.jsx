@@ -36,7 +36,7 @@ export default function ModeratorLayout() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-blue-700 to-blue-900 text-white flex-col z-50">
+      <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-blue-800 to-blue-950 text-white flex-col z-50">
         <div className="p-6 border-b border-white/10">
           <Link to="/" className="flex items-center gap-3 no-underline">
             <img src="/logo.png?3" alt="Vewoz" className="w-16 h-16 object-contain" />
