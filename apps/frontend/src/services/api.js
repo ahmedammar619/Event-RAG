@@ -88,3 +88,8 @@ export const assignmentsService = {
   delete: (id) => api.delete(`/assignments/${id}`),
   reset: (dayId) => api.delete('/assignments/reset', { data: { day_id: dayId } })
 }
+
+export const analyticsService = {
+  track: (data) => api.post('/analytics/track', data).catch(() => {}), // Silent fail
+  getAnalytics: (params) => api.get('/analytics', { params })
+}

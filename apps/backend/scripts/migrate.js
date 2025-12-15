@@ -109,7 +109,38 @@ const migrations = [
      IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'sessions' AND column_name = 'headcount_percentage') THEN
        ALTER TABLE sessions ADD COLUMN headcount_percentage INTEGER;
      END IF;
-   END $$`
+   END $$`,
+
+  // 012: Create analytics table for tracking visitors
+  `CREATE TABLE IF NOT EXISTS analytics (
+    id SERIAL PRIMARY KEY,
+    session_id VARCHAR(100),
+    user_id INTEGER REFERENCES moderators(id) ON DELETE SET NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    device_type VARCHAR(50),
+    browser VARCHAR(100),
+    os VARCHAR(100),
+    referrer TEXT,
+    landing_page VARCHAR(500),
+    current_page VARCHAR(500),
+    country VARCHAR(100),
+    city VARCHAR(100),
+    screen_width INTEGER,
+    screen_height INTEGER,
+    language VARCHAR(20),
+    utm_source VARCHAR(255),
+    utm_medium VARCHAR(255),
+    utm_campaign VARCHAR(255),
+    event_type VARCHAR(50) DEFAULT 'pageview',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`,
+
+  // 013: Create indexes for analytics
+  `CREATE INDEX IF NOT EXISTS idx_analytics_session ON analytics(session_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_analytics_created ON analytics(created_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_analytics_user ON analytics(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics(event_type)`
 ];
 
 async function migrate() {

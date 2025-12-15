@@ -21,6 +21,7 @@ export default function AdminLayout() {
     { to: '/admin/moderators', label: 'Moderators', icon: '👥' },
     { to: '/admin/assignments', label: 'Assignments', icon: '✅' },
     { to: '/admin/export', label: 'Export Data', icon: '📥' }
+    // { to: '/admin/analytics', label: 'Analytics', icon: '📈' }
   ]
 
   return (
