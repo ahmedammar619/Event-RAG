@@ -2,6 +2,8 @@
 
 Volunteer coordination platform for the MASCON Annual Event in Chicago. This platform helps coordinate volunteers across event sessions with automated scheduling and assignment.
 
+![Vewoz AutoAssigner Open Graph](apps/frontend/public/og-image.png)
+
 ## Table of Contents
 
 - [Overview](#overview)
