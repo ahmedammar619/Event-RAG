@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import Footer from '../common/Footer'
 
 export default function AdminLayout() {
   const { admin, logout } = useAuth()
@@ -58,13 +59,13 @@ export default function AdminLayout() {
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
         <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 no-underline">
             <img src="/logo.png?3" alt="Vewoz" className="w-16 h-16 object-contain" />
             <div>
               <h1 className="vewoz-logo text-3xl m-0">Vewoz</h1>
               <span className="text-xs text-white/50 uppercase tracking-widest">MASCON Admin</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="flex-1 py-4 overflow-y-auto">
@@ -112,18 +113,7 @@ export default function AdminLayout() {
           <Outlet />
         </div>
 
-        <footer className="p-4 lg:px-8 text-center text-sm text-slate-500 border-t border-slate-200 bg-white">
-          <p className="m-0">
-            &copy; {new Date().getFullYear()} Vewoz.{' '}
-            <a href="https://ahmedammar.dev?mascon" target="_blank" rel="noopener noreferrer" className="text-blue-600">
-              Developer
-            </a>
-            {' | '}
-            <Link to="/" className="text-blue-600">
-              Moderator Portal
-            </Link>
-          </p>
-        </footer>
+        <Footer />
       </main>
     </div>
   )

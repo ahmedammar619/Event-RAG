@@ -1,5 +1,6 @@
 import { Outlet, NavLink, useNavigate, Link } from 'react-router-dom'
 import { useModerator } from '../../context/ModeratorContext'
+import Footer from '../common/Footer'
 
 export default function ModeratorLayout() {
   const { moderator, logout } = useModerator()
@@ -37,13 +38,13 @@ export default function ModeratorLayout() {
       {/* Desktop Sidebar */}
       <aside className="hidden lg:flex fixed top-0 left-0 bottom-0 w-64 bg-gradient-to-b from-blue-700 to-blue-900 text-white flex-col z-50">
         <div className="p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
+          <Link to="/" className="flex items-center gap-3 no-underline">
             <img src="/logo.png?3" alt="Vewoz" className="w-16 h-16 object-contain" />
             <div>
               <h1 className="vewoz-logo text-2xl m-0">Vewoz</h1>
               <span className="text-xs text-white/50 uppercase tracking-widest">MASCON Portal</span>
             </div>
-          </div>
+          </Link>
         </div>
 
         <nav className="flex-1 py-4">
@@ -130,16 +131,9 @@ export default function ModeratorLayout() {
       </nav>
 
       {/* Desktop Footer */}
-      <footer className="hidden lg:block fixed bottom-0 left-64 right-0 p-4 text-center text-sm text-slate-500 bg-white border-t border-slate-200">
-        &copy; {new Date().getFullYear()} Vewoz.{' '}
-        <a href="https://ahmedammar.dev?mascon" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-          Developer
-        </a>
-        {' | '}
-        <Link to="/admin/login" className="text-blue-600 hover:underline">
-          Admin
-        </Link>
-      </footer>
+      <div className="hidden lg:block fixed bottom-0 left-64 right-0">
+        <Footer />
+      </div>
     </div>
   )
 }
