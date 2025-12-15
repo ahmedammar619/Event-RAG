@@ -73,7 +73,7 @@ export default async function availabilityRoutes(fastify, options) {
 
   // POST /api/availability/bulk
   fastify.post('/bulk', async (request, reply) => {
-    const { moderator_id, slots } = request.body;
+    const { moderator_id, day_id, slots } = request.body;
 
     if (!moderator_id || !slots || !Array.isArray(slots)) {
       throw validationError('moderator_id and slots array are required');
@@ -91,8 +91,12 @@ export default async function availabilityRoutes(fastify, options) {
       return time.slice(0, 5); // Get just HH:MM
     };
 
-    // Delete existing availability for this moderator
-    await db.query('DELETE FROM availability WHERE moderator_id = $1', [moderator_id]);
+    // Delete existing availability - either for specific day or all
+    if (day_id) {
+      await db.query('DELETE FROM availability WHERE moderator_id = $1 AND event_day_id = $2', [moderator_id, day_id]);
+    } else {
+      await db.query('DELETE FROM availability WHERE moderator_id = $1', [moderator_id]);
+    }
 
     const created = [];
     const errors = [];
