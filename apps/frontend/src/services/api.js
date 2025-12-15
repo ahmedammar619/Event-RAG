@@ -75,6 +75,7 @@ export const availabilityService = {
   getByModerator: (id) => api.get(`/availability/moderator/${id}`),
   create: (data) => api.post('/availability', data),
   bulkCreate: (moderatorId, slots) => api.post('/availability/bulk', { moderator_id: moderatorId, slots }),
+  bulkCreateForDay: (moderatorId, dayId, slots) => api.post('/availability/bulk', { moderator_id: moderatorId, day_id: dayId, slots }),
   update: (id, data) => api.put(`/availability/${id}`, data),
   delete: (id) => api.delete(`/availability/${id}`)
 }

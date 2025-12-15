@@ -9,10 +9,12 @@ export default function Settings() {
 
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [savingDay, setSavingDay] = useState(null)
   const [days, setDays] = useState([])
   const [availability, setAvailability] = useState({})
   const [schedulePreference, setSchedulePreference] = useState('no_preference')
   const [hasChanges, setHasChanges] = useState(false)
+  const [dayChanges, setDayChanges] = useState({})
 
   useEffect(() => {
     if (moderator?.id) {
@@ -44,6 +46,7 @@ export default function Settings() {
       })
       setAvailability(grouped)
       setHasChanges(false)
+      setDayChanges({})
     } catch (err) {
       toast.error('Failed to load data')
     } finally {
@@ -61,6 +64,7 @@ export default function Settings() {
       ]
     }))
     setHasChanges(true)
+    setDayChanges(prev => ({ ...prev, [dayId]: true }))
   }
 
   const removeSlot = async (dayId, index) => {
@@ -92,6 +96,7 @@ export default function Settings() {
       )
     }))
     setHasChanges(true)
+    setDayChanges(prev => ({ ...prev, [dayId]: true }))
   }
 
   const setFullDay = (dayId) => {
@@ -101,6 +106,7 @@ export default function Settings() {
       [dayId]: [{ start_time: day.start_time.slice(0, 5), end_time: day.end_time.slice(0, 5), modified: true }]
     }))
     setHasChanges(true)
+    setDayChanges(prev => ({ ...prev, [dayId]: true }))
   }
 
   const clearDay = async (dayId) => {
@@ -128,6 +134,37 @@ export default function Settings() {
   const handlePreferenceChange = (value) => {
     setSchedulePreference(value)
     setHasChanges(true)
+  }
+
+  const saveDayAvailability = async (dayId) => {
+    setSavingDay(dayId)
+    try {
+      const daySlots = availability[dayId] || []
+      const slots = daySlots.map(slot => ({
+        event_day_id: dayId,
+        start_time: slot.start_time,
+        end_time: slot.end_time
+      }))
+
+      await availabilityService.bulkCreateForDay(moderator.id, dayId, slots)
+
+      setDayChanges(prev => {
+        const updated = { ...prev }
+        delete updated[dayId]
+        return updated
+      })
+
+      // Check if there are any remaining changes
+      const remainingChanges = Object.keys(dayChanges).filter(id => id !== String(dayId)).length > 0
+      setHasChanges(remainingChanges)
+
+      toast.success('Saved!')
+      await loadData()
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Failed to save')
+    } finally {
+      setSavingDay(null)
+    }
   }
 
   const handleSubmit = async () => {
@@ -229,9 +266,10 @@ export default function Settings() {
             {days.map(day => {
               const daySlots = availability[day.id] || []
               const hasSlots = daySlots.length > 0
+              const hasDayChanges = dayChanges[day.id]
 
               return (
-                <div key={day.id} className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div key={day.id} className={`bg-white rounded-xl shadow-sm border overflow-hidden ${hasDayChanges ? 'border-blue-400 ring-2 ring-blue-100' : 'border-slate-200'}`}>
                   {/* Day Header */}
                   <div className="bg-blue-600 px-4 py-3">
                     <div className="flex items-center justify-between">
@@ -313,6 +351,17 @@ export default function Settings() {
                           + Add Another
                         </button>
                       </div>
+                    )}
+
+                    {/* Save button for this day */}
+                    {hasDayChanges && (
+                      <button
+                        onClick={() => saveDayAvailability(day.id)}
+                        disabled={savingDay === day.id}
+                        className="w-full mt-3 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                      >
+                        {savingDay === day.id ? 'Saving...' : 'Save This Day'}
+                      </button>
                     )}
                   </div>
                 </div>
