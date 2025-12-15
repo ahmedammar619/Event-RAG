@@ -40,7 +40,7 @@ export default function ModeratorLayout() {
           <div className="flex items-center gap-3">
             <img src="/logo.png?3" alt="Vewoz" className="w-16 h-16 object-contain" />
             <div>
-              <h1 className="text-xl font-bold text-white m-0">Vewoz</h1>
+              <h1 className="vewoz-logo text-2xl m-0">Vewoz</h1>
               <span className="text-xs text-white/50 uppercase tracking-widest">MASCON Portal</span>
             </div>
           </div>
@@ -88,8 +88,8 @@ export default function ModeratorLayout() {
       <header className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-blue-700 text-white px-4 py-3 shadow-md">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src="/logo.png?3" alt="Vewoz" className="w-16 h-16 object-contain" />
-            <h1 className="font-bold text-lg m-0">Vewoz | MASCON</h1>
+            <img src="/logo.png?3" alt="Vewoz" className="w-12 h-12 object-contain" />
+            <span className="vewoz-logo text-2xl">Vewoz</span>
           </div>
           <button
             onClick={handleLogout}

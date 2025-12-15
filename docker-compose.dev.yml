@@ -1,28 +1,4 @@
 services:
-  frontend:
-    build:
-      context: .
-      dockerfile: apps/frontend/Dockerfile.dev
-    ports:
-      - "3000:3000"
-    stdin_open: true
-    tty: true
-    environment:
-      - VITE_API_URL=http://localhost:3001
-      - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=100
-    volumes:
-      - ./apps/frontend/src:/app/src:delegated
-      - ./apps/frontend/public:/app/public:delegated
-      - ./apps/frontend/index.html:/app/index.html:delegated
-      - ./apps/frontend/vite.config.js:/app/vite.config.js:delegated
-      - ./apps/frontend/tailwind.config.js:/app/tailwind.config.js:delegated
-      - ./apps/frontend/postcss.config.js:/app/postcss.config.js:delegated
-    depends_on:
-      - backend
-    networks:
-      - app-network
-
   backend:
     build:
       context: .

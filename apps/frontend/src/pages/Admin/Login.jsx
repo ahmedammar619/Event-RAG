@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { useToast } from '../../context/ToastContext'
+import Header from '../../components/common/Header'
 import Footer from '../../components/common/Footer'
 
 export default function AdminLogin() {
@@ -40,17 +41,17 @@ export default function AdminLogin() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
+      <Header />
+
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <Link to="/" className="inline-block mb-4 text-slate-500 text-sm hover:text-slate-700">
-              &larr; Back to Home
-            </Link>
-            <h1 className="text-2xl font-semibold mb-2">Admin Login</h1>
-            <p className="text-slate-500">Sign in to access the admin dashboard</p>
-          </div>
+          <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200">
+            <div className="text-center mb-6">
+              <h1 className="text-2xl font-semibold mb-2">Admin Login</h1>
+              <p className="text-slate-500">Sign in to access the admin dashboard</p>
+            </div>
 
-          <form onSubmit={handleSubmit} className="card p-8">
+            <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label className="form-label">Username</label>
               <input
@@ -75,17 +76,18 @@ export default function AdminLogin() {
               />
             </div>
 
-            <button
-              type="submit"
-              className="btn btn-primary btn-lg w-full"
-              disabled={loading}
-            >
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                className="btn btn-primary btn-lg w-full"
+                disabled={loading}
+              >
+                {loading ? 'Signing in...' : 'Sign In'}
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-      <Footer variant="dark" />
+      <Footer />
     </div>
   )
 }

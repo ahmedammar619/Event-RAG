@@ -32,7 +32,7 @@ export default function Footer({ variant = 'default' }) {
               href="https://ahmedammar.dev?mascon"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-slate-300 no-underline hover:text-white transition-colors px-3 py-1 rounded-full bg-slate-700 hover:bg-slate-600"
+              className="text-white no-underline hover:text-white transition-colors px-3 py-1 rounded-full bg-white/20 hover:bg-white/30"
             >
               Developer
             </a>
@@ -48,27 +48,27 @@ export default function Footer({ variant = 'default' }) {
     )
   }
 
-  // Light/transparent variant for dark background pages (like landing)
+  // Default: light background footer
   return (
-    <footer className="w-full py-4 px-6 mt-auto">
+    <footer className="w-full py-4 px-6 mt-auto bg-white border-t border-slate-200">
       <div className="max-w-4xl mx-auto flex flex-col-reverse sm:flex-row items-center justify-between gap-3 text-sm">
         <div className="flex items-center gap-2">
-          <p className="text-white/60 m-0">
+          <p className="text-slate-500 m-0">
             &copy; {currentYear} Vewoz
           </p>
-          <span className="text-white/30">•</span>
+          <span className="text-slate-300">•</span>
           <a
             href="https://ahmedammar.dev?mascon"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-white no-underline hover:text-white transition-colors px-3 py-1 rounded-full bg-white/20 hover:bg-white/30"
+            className="text-blue-600 hover:text-blue-700 no-underline"
           >
             Developer
           </a>
         </div>
         <Link
           to={portalLink.to}
-          className="text-white no-underline hover:text-white transition-colors px-4 py-1.5 rounded-full bg-white/20 hover:bg-white/30"
+          className="text-slate-600 no-underline hover:text-slate-800 transition-colors px-4 py-1.5 rounded-full bg-slate-100 hover:bg-slate-200 border border-slate-200"
         >
           {portalLink.label}
         </Link>
