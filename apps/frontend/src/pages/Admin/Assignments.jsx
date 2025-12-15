@@ -151,11 +151,11 @@ export default function Assignments() {
           <h1>Assignments</h1>
           <p>Manage moderator assignments to sessions</p>
         </div>
-        <div className="flex gap-2">
-          <button className="btn btn-outline" onClick={resetAssignments}>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <button className="btn btn-outline w-full sm:w-auto" onClick={resetAssignments}>
             Clear All
           </button>
-          <button className="btn btn-primary" onClick={() => setShowAutoModal(true)}>
+          <button className="btn btn-primary w-full sm:w-auto" onClick={() => setShowAutoModal(true)}>
             Auto-Assign
           </button>
         </div>
@@ -181,20 +181,18 @@ export default function Assignments() {
       </div>
 
       <div className="card mb-6">
-        <div className="flex gap-4">
-          <div className="form-group mb-0">
-            <label className="form-label">Filter by Day</label>
-            <select
-              className="form-input"
-              value={filter.day_id}
-              onChange={e => setFilter({ ...filter, day_id: e.target.value })}
-            >
-              <option value="">All Days</option>
-              {days.map(day => (
-                <option key={day.id} value={day.id}>{formatDate(day.date)}</option>
-              ))}
-            </select>
-          </div>
+        <div className="form-group mb-0">
+          <label className="form-label">Filter by Day</label>
+          <select
+            className="form-input w-full sm:w-auto"
+            value={filter.day_id}
+            onChange={e => setFilter({ ...filter, day_id: e.target.value })}
+          >
+            <option value="">All Days</option>
+            {days.map(day => (
+              <option key={day.id} value={day.id}>{formatDate(day.date)}</option>
+            ))}
+          </select>
         </div>
       </div>
 

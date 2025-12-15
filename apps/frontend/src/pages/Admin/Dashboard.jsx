@@ -60,22 +60,22 @@ export default function Dashboard() {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Quick Actions</h3>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Link to="/admin/days" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg no-underline text-slate-800 hover:bg-slate-100 transition-colors">
               <span className="text-2xl">📅</span>
-              <span>Manage Event Days</span>
+              <span className="text-sm sm:text-base">Event Days</span>
             </Link>
             <Link to="/admin/sessions" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg no-underline text-slate-800 hover:bg-slate-100 transition-colors">
               <span className="text-2xl">🎤</span>
-              <span>Manage Sessions</span>
+              <span className="text-sm sm:text-base">Sessions</span>
             </Link>
             <Link to="/admin/assignments" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg no-underline text-slate-800 hover:bg-slate-100 transition-colors">
               <span className="text-2xl">👥</span>
-              <span>Auto-Assign Moderators</span>
+              <span className="text-sm sm:text-base">Auto-Assign</span>
             </Link>
             <Link to="/admin/moderators" className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg no-underline text-slate-800 hover:bg-slate-100 transition-colors">
               <span className="text-2xl">📋</span>
-              <span>View All Moderators</span>
+              <span className="text-sm sm:text-base">Moderators</span>
             </Link>
           </div>
         </div>
@@ -87,15 +87,15 @@ export default function Dashboard() {
           <p className="text-sm text-slate-500 mb-4">
             Share this link with volunteers to let them register and input their availability.
           </p>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <input
               type="text"
-              className="form-input flex-1"
+              className="form-input flex-1 text-sm"
               value={registrationLink}
               readOnly
             />
             <button
-              className="btn btn-primary"
+              className="btn btn-primary w-full sm:w-auto"
               onClick={() => {
                 navigator.clipboard.writeText(registrationLink)
                 alert('Link copied to clipboard!')

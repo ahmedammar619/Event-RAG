@@ -123,12 +123,12 @@ export default function Sessions() {
 
   return (
     <div>
-      <div className="page-header flex justify-between items-center">
+      <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1>Sessions</h1>
           <p>Manage event sessions and talks</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openModal()} disabled={days.length === 0}>
+        <button className="btn btn-primary w-full sm:w-auto" onClick={() => openModal()} disabled={days.length === 0}>
           + Add Session
         </button>
       </div>
@@ -141,8 +141,8 @@ export default function Sessions() {
       ) : (
         <>
           <div className="card mb-4">
-            <div className="flex gap-4">
-              <div className="form-group" style={{ marginBottom: 0 }}>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="form-group mb-0">
                 <label className="form-label">Filter by Day</label>
                 <select
                   className="form-input"
@@ -155,7 +155,7 @@ export default function Sessions() {
                   ))}
                 </select>
               </div>
-              <div className="form-group" style={{ marginBottom: 0 }}>
+              <div className="form-group mb-0">
                 <label className="form-label">Filter by Room</label>
                 <select
                   className="form-input"
@@ -179,7 +179,8 @@ export default function Sessions() {
               <p>Add sessions to start scheduling moderators</p>
             </div>
           ) : (
-            <div className="table-container card">
+            <div className="card table-card">
+              <div className="table-container">
               <table className="table">
                 <thead>
                   <tr>
@@ -238,6 +239,7 @@ export default function Sessions() {
                   })}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </>

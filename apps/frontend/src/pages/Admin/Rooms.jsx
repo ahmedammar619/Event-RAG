@@ -79,12 +79,12 @@ export default function Rooms() {
 
   return (
     <div>
-      <div className="page-header flex justify-between items-center">
+      <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1>Rooms</h1>
           <p>Manage session locations and rooms</p>
         </div>
-        <button className="btn btn-primary" onClick={() => openModal()}>
+        <button className="btn btn-primary w-full sm:w-auto" onClick={() => openModal()}>
           + Add Room
         </button>
       </div>

@@ -225,14 +225,16 @@ export default function Export() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Export Data</h1>
-        <p>Download data as CSV files (opens in Excel)</p>
+      <div className="page-header flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1>Export Data</h1>
+          <p>Download data as CSV files (opens in Excel)</p>
+        </div>
       </div>
 
       {/* Export All Button */}
       <div className="card mb-6 p-6 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-xl font-bold mb-1">Export All Data</h2>
             <p className="text-blue-100 text-sm">Download all tables as separate CSV files</p>
@@ -240,7 +242,7 @@ export default function Export() {
           <button
             onClick={exportAll}
             disabled={loading.all}
-            className="px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50"
+            className="w-full sm:w-auto px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors disabled:opacity-50"
           >
             {loading.all ? 'Exporting...' : 'Export All'}
           </button>
