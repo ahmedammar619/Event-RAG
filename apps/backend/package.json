@@ -8,16 +8,18 @@
     "start": "node src/app.js",
     "build": "echo 'No build step needed for Node.js'",
     "migrate": "node scripts/migrate.js",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "import-sessions": "node scripts/import-sessions.js"
   },
   "dependencies": {
-    "fastify": "^4.24.3",
     "@fastify/cors": "^8.4.1",
     "@fastify/jwt": "^7.2.4",
-    "fastify-plugin": "^4.5.1",
-    "pg": "^8.11.3",
     "bcrypt": "^5.1.1",
-    "dotenv": "^16.3.1"
+    "csv-parse": "^6.1.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.24.3",
+    "fastify-plugin": "^4.5.1",
+    "pg": "^8.11.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
