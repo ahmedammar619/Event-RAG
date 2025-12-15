@@ -27,7 +27,7 @@ export default function AdminLayout() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Mobile Header */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-blue-700 text-white">
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between p-4 bg-blue-800 text-white">
         <button
           className="p-2 text-2xl bg-transparent border-none text-white"
           onClick={() => setSidebarOpen(!sidebarOpen)}
