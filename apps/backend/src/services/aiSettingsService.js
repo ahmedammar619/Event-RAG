@@ -67,11 +67,15 @@ export async function setDefaultResultCount(ragDb, count) {
 // LLM Model setting
 export async function getLlmModel(ragDb) {
   const model = await getSetting(ragDb, 'llm_model');
-  return model || 'gemma3:270m';
+  // Map old model names to new ones, default to grok-fast
+  if (model === 'gemma3:270m' || model === 'gemma3-4b' || !model) {
+    return 'grok-fast';
+  }
+  return model;
 }
 
 export async function setLlmModel(ragDb, model) {
-  const validModels = ['gemma3:270m', 'gemma3-4b'];
+  const validModels = ['grok-fast', 'grok-reasoning'];
   if (!validModels.includes(model)) {
     throw new Error(`Invalid model. Must be one of: ${validModels.join(', ')}`);
   }
