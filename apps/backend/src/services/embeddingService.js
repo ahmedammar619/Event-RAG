@@ -35,19 +35,13 @@ export async function generateEmbedding(text) {
   return embedding;
 }
 
-export async function testEmbeddingService() {
-  try {
-    const embedding = await generateEmbedding('test');
-    return {
-      status: 'ok',
-      dimensions: embedding.length,
-      url: EMBEDDING_URL
-    };
-  } catch (err) {
-    return {
-      status: 'error',
-      error: err.message,
-      url: EMBEDDING_URL
-    };
-  }
+export function testEmbeddingService() {
+  // Just check configuration - avoid unnecessary API calls on health checks
+  const hasUrl = !!EMBEDDING_URL;
+  return {
+    status: hasUrl ? 'ok' : 'not_configured',
+    configured: hasUrl,
+    dimensions: 768, // nomic-embed-text-v2-moe dimensions
+    url: EMBEDDING_URL
+  };
 }

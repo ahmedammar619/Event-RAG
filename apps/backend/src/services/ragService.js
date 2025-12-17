@@ -83,9 +83,12 @@ export async function searchSessionsSmart(ragDb, query, options = {}) {
 
   // Parse query to extract structured filters
   const parsedQuery = await parseQuery(searchQuery);
+  console.log('Parsed query filters:', JSON.stringify(parsedQuery));
 
   // Build SQL filters
   const { whereClause, params } = buildSQLFilters(parsedQuery);
+  console.log('SQL WHERE clause:', whereClause);
+  console.log('SQL params:', params);
 
   // Generate embedding for topic (semantic part)
   const topicToEmbed = parsedQuery.topic || searchQuery;
@@ -95,7 +98,7 @@ export async function searchSessionsSmart(ragDb, query, options = {}) {
   const embeddingParam = `[${queryEmbedding.join(',')}]`;
   const allParams = [...params, embeddingParam, limit];
 
-  const result = await ragDb.query(`
+  let result = await ragDb.query(`
     SELECT
       s.*,
       se.searchable_text,
@@ -106,6 +109,29 @@ export async function searchSessionsSmart(ragDb, query, options = {}) {
     ORDER BY se.embedding <=> $${params.length + 1}::vector
     LIMIT $${params.length + 2}
   `, allParams);
+
+  console.log(`Smart search found ${result.rows.length} results with filters`);
+
+  // FALLBACK: If too few results with filters, try without SQL filters
+  if (result.rows.length < 5 && whereClause) {
+    console.log('Too few results, falling back to pure vector search');
+    const fallbackResult = await ragDb.query(`
+      SELECT
+        s.*,
+        se.searchable_text,
+        1 - (se.embedding <=> $1::vector) as similarity
+      FROM sessions s
+      JOIN session_embeddings se ON s.id = se.session_id
+      ORDER BY se.embedding <=> $1::vector
+      LIMIT $2
+    `, [embeddingParam, limit]);
+
+    // Merge: filtered results first, then fallback results (deduplicated)
+    const seenIds = new Set(result.rows.map(r => r.id));
+    const additionalRows = fallbackResult.rows.filter(r => !seenIds.has(r.id));
+    result.rows = [...result.rows, ...additionalRows].slice(0, limit);
+    console.log(`After fallback: ${result.rows.length} total results`);
+  }
 
   return {
     mode: 'smart',
@@ -146,25 +172,42 @@ export async function generateReasoning(ragDb, query, sessions) {
 
   const sessionSummaries = sessions.map((s, i) => {
     const session = s.session || s;
-    return `${i + 1}. "${session.title}" by ${session.speakers || 'Unknown'} - ${session.description_english?.substring(0, 200) || 'No description'}...`;
+    const desc = session.description_english || session.description || '';
+    return `${i + 1}. Title: "${session.title}"
+   Speaker: ${session.speakers || 'Unknown'}
+   Time: ${session.time_start} - ${session.time_end}
+   Track: ${session.track || 'General'}
+   Description: ${desc.substring(0, 300)}`;
   }).join('\n\n');
 
-  const systemPrompt = `You are a helpful assistant for a conference. Provide brief, specific recommendations for why each session might interest the attendee based on their query. Be concise - 1-2 sentences per session.`;
+  const systemPrompt = `You are a helpful conference assistant. Your job is to explain WHY each session would be valuable for the attendee based on their specific question or interest.
 
-  const userPrompt = `The attendee asked: "${query}"
+IMPORTANT RULES:
+- DO NOT just repeat the session title or speaker name
+- DO explain how the session content connects to what the user asked
+- Be specific about what the attendee will learn or gain
+- Keep each explanation to 1-2 sentences
+- If the session is in Arabic, mention that`;
 
-Here are the matching sessions:
+  const userPrompt = `The attendee's question: "${query}"
+
+Sessions found:
 
 ${sessionSummaries}
 
-For each session, explain why it might be relevant. Format as a numbered list:`;
+For EACH session, write a brief explanation of WHY it's relevant to the attendee's question. Focus on the VALUE and CONNECTION to their interest, not just restating the title.
+
+Format your response as:
+1. [Your explanation for session 1]
+2. [Your explanation for session 2]
+...`;
 
   try {
     const response = await generateCompletion(userPrompt, {
       model: grokModel,
       systemPrompt,
-      maxTokens: 800,
-      temperature: 0.7
+      maxTokens: 1200,
+      temperature: 0.5
     });
 
     // Parse reasoning into array

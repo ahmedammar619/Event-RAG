@@ -145,18 +145,6 @@ export default function AISettings() {
     }
   }
 
-  const handleResultCountChange = async (count) => {
-    setSaving(true)
-    try {
-      await aiService.setResultCount(count)
-      setSettings({ ...settings, default_result_count: count.toString() })
-      toast.success('Result count updated')
-    } catch (err) {
-      toast.error('Failed to update')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const getColorClasses = (color, isSelected) => {
     const colors = {
@@ -320,31 +308,6 @@ export default function AISettings() {
           </div>
         </div>
       )}
-
-      {/* Default Results Count */}
-      <div className="card">
-        <div className="mb-4 md:mb-6">
-          <h2 className="text-base md:text-lg font-semibold text-slate-800">Default Results</h2>
-          <p className="text-xs md:text-sm text-slate-500 mt-1">Number of sessions to show initially</p>
-        </div>
-
-        <div className="grid grid-cols-5 gap-2 md:flex md:gap-3">
-          {[3, 5, 10, 15, 20].map(count => (
-            <button
-              key={count}
-              onClick={() => handleResultCountChange(count)}
-              disabled={saving}
-              className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-medium text-base md:text-lg transition-all ${
-                parseInt(settings.default_result_count) === count
-                  ? 'bg-slate-800 text-white shadow-lg'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
-            >
-              {count}
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Analytics Summary */}
       {analytics?.totals && (

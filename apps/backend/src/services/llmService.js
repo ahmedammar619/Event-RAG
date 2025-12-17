@@ -88,28 +88,17 @@ export function extractJSON(text) {
 }
 
 /**
- * Test the LLM service connection
- * @returns {Promise<object>} - Test result
+ * Test the LLM service configuration (NO actual API call)
+ * @returns {object} - Config status
  */
-export async function testLLMService() {
-  try {
-    if (!XAI_API_KEY) {
-      return { status: 'error', error: 'XAI_API_KEY not configured' };
-    }
-
-    const response = await generateCompletion('Say "ok" if you can hear me.', {
-      maxTokens: 10,
-      temperature: 0
-    });
-
-    return {
-      status: 'ok',
-      model: MODELS['grok-fast'],
-      testResponse: response.substring(0, 50)
-    };
-  } catch (err) {
-    return { status: 'error', error: err.message };
-  }
+export function testLLMService() {
+  // Just check configuration - DON'T make actual API calls for health checks
+  const hasApiKey = !!XAI_API_KEY;
+  return {
+    status: hasApiKey ? 'ok' : 'not_configured',
+    configured: hasApiKey,
+    model: MODELS['grok-fast']
+  };
 }
 
 export { MODELS };

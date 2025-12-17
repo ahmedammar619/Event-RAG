@@ -1,4 +1,4 @@
-export default function SessionCard({ session, reasoning, relevanceScore, rank }) {
+export default function SessionCard({ session, reasoning, relevanceScore, rank, compact = false }) {
   if (!session) return null
 
   const formatTime = (time) => {
@@ -19,6 +19,33 @@ export default function SessionCard({ session, reasoning, relevanceScore, rank }
   }
 
   const relevancePercent = relevanceScore ? Math.round(parseFloat(relevanceScore) * 100) : null
+
+  // Compact mode - simpler card for preview
+  if (compact) {
+    return (
+      <div className="bg-white rounded-lg border border-slate-200 p-4 hover:border-purple-300 transition-colors">
+        <div className="flex items-start gap-3">
+          {rank && (
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-slate-100 text-slate-600 font-medium text-sm flex-shrink-0">
+              {rank}
+            </span>
+          )}
+          <div className="flex-1 min-w-0">
+            <h4 className="font-medium text-slate-800 truncate">{session.title}</h4>
+            <div className="flex flex-wrap items-center gap-2 mt-1 text-xs text-slate-500">
+              {session.track && <span className="px-1.5 py-0.5 bg-slate-100 rounded">{session.track}</span>}
+              <span>{formatDate(session.date)}</span>
+              <span>{formatTime(session.time_start)}</span>
+              {session.speakers && <span className="truncate max-w-[150px]">{session.speakers}</span>}
+            </div>
+          </div>
+          {relevancePercent && (
+            <span className="text-xs font-medium text-purple-600 flex-shrink-0">{relevancePercent}%</span>
+          )}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow">

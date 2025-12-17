@@ -189,32 +189,60 @@ export default function Explore() {
 
         {/* Search Results - Before Count Selection */}
         {searchResults && !selectedCount && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-8">
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
-                <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-              </div>
-              <h2 className="text-xl font-semibold text-slate-800">
-                Found {searchResults.total_matches} relevant sessions!
-              </h2>
-              <p className="text-slate-500 mt-1">
-                How many would you like me to analyze in detail?
-              </p>
-              {searchResults.language_detected === 'arabic' && (
-                <p className="text-sm text-purple-600 mt-2">
-                  Query translated from Arabic for better search results
+          <>
+            {/* Count Selector */}
+            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-6">
+              <div className="text-center mb-6">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
+                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h2 className="text-xl font-semibold text-slate-800">
+                  Found {searchResults.total_matches} relevant sessions!
+                </h2>
+                <p className="text-slate-500 mt-1">
+                  How many would you like AI to explain?
                 </p>
-              )}
+                {searchResults.language_detected === 'arabic' && (
+                  <p className="text-sm text-purple-600 mt-2">
+                    Query translated from Arabic for better search results
+                  </p>
+                )}
+              </div>
+
+              <ResultCountSelector
+                totalResults={searchResults.total_matches}
+                onSelect={handleCountSelect}
+                disabled={generatingReasoning}
+              />
             </div>
 
-            <ResultCountSelector
-              totalResults={searchResults.total_matches}
-              onSelect={handleCountSelect}
-              disabled={generatingReasoning}
-            />
-          </div>
+            {/* Preview of ALL Results (without reasoning) */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-700">
+                  All {searchResults.total_matches} Results
+                </h3>
+                <button
+                  onClick={handleReset}
+                  className="text-purple-600 hover:underline text-sm"
+                >
+                  New Search
+                </button>
+              </div>
+              {searchResults.results.map((result, idx) => (
+                <SessionCard
+                  key={result.session?.id || idx}
+                  session={result.session}
+                  reasoning={null}
+                  relevanceScore={result.relevance_score}
+                  rank={idx + 1}
+                  compact={true}
+                />
+              ))}
+            </div>
+          </>
         )}
 
         {/* Loading State for Reasoning */}

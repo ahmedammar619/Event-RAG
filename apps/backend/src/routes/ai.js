@@ -41,8 +41,6 @@ import {
   getAllSettings,
   getSearchMode,
   setSearchMode,
-  getDefaultResultCount,
-  setDefaultResultCount,
   getLlmModel,
   setLlmModel,
   getReasoningMode,
@@ -75,14 +73,11 @@ export default async function aiRoutes(fastify, options) {
       throw validationError('Query is required');
     }
 
-    // Get default result count from settings
-    const limit = await getDefaultResultCount(ragDb);
-
     // Get reasoning mode to include in response
     const reasoningMode = await getReasoningMode(ragDb);
 
-    // Perform search (mode is determined by settings)
-    const results = await searchSessions(ragDb, query.trim(), { limit: limit * 3 }); // Get more than needed for selection
+    // Always return up to 20 results - user selects how many to get AI reasoning for
+    const results = await searchSessions(ragDb, query.trim(), { limit: 20 });
 
     // Log the query for analytics
     try {
@@ -250,25 +245,6 @@ export default async function aiRoutes(fastify, options) {
     return success({ search_mode: mode });
   });
 
-  // PUT /api/ai/settings/result-count (admin only)
-  fastify.put('/settings/result-count', {
-    preHandler: [fastify.authenticate]
-  }, async (request, reply) => {
-    if (request.user.role !== 'admin') {
-      throw validationError('Admin access required');
-    }
-
-    const { count } = request.body;
-
-    if (!count || count < 1 || count > 50) {
-      throw validationError('Count must be between 1 and 50');
-    }
-
-    await setDefaultResultCount(ragDb, count);
-
-    return success({ default_result_count: count });
-  });
-
   // PUT /api/ai/settings/llm-model (admin only)
   fastify.put('/settings/llm-model', {
     preHandler: [fastify.authenticate]
@@ -420,11 +396,10 @@ export default async function aiRoutes(fastify, options) {
 
   // GET /api/ai/health
   fastify.get('/health', async (request, reply) => {
-    const [embeddingStatus, languageStatus, parserStatus] = await Promise.all([
-      testEmbeddingService(),
-      testLanguageService(),
-      testQueryParser()
-    ]);
+    // These are now synchronous config checks - NO API calls
+    const embeddingStatus = testEmbeddingService();
+    const languageStatus = testLanguageService();
+    const parserStatus = testQueryParser();
 
     const searchMode = await getSearchMode(ragDb);
 

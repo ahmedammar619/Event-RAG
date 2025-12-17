@@ -1,12 +1,13 @@
 export default function ResultCountSelector({ totalResults, onSelect, disabled }) {
+  // Fixed options: Top 3, Top 5, All (max 20)
   const options = []
 
-  // Quick option (3-5)
+  // Top 3 option
   if (totalResults >= 3) {
     options.push({
-      count: Math.min(5, totalResults),
-      label: totalResults >= 5 ? 'Top 5' : `Top ${Math.min(5, totalResults)}`,
-      description: 'Quick overview',
+      count: 3,
+      label: 'Top 3',
+      description: 'Quick summary',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -15,12 +16,12 @@ export default function ResultCountSelector({ totalResults, onSelect, disabled }
     })
   }
 
-  // Standard option (10)
-  if (totalResults > 5) {
+  // Top 5 option
+  if (totalResults >= 5) {
     options.push({
-      count: Math.min(10, totalResults),
-      label: totalResults >= 10 ? 'Top 10' : `Top ${Math.min(10, totalResults)}`,
-      description: 'Detailed analysis',
+      count: 5,
+      label: 'Top 5',
+      description: 'Balanced view',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
@@ -29,12 +30,13 @@ export default function ResultCountSelector({ totalResults, onSelect, disabled }
     })
   }
 
-  // All option
-  if (totalResults > 1) {
+  // All option (capped at 20 for AI reasoning cost)
+  const allCount = Math.min(totalResults, 20)
+  if (totalResults > 5 || options.length === 0) {
     options.push({
-      count: totalResults,
-      label: `All ${totalResults}`,
-      description: 'Complete list',
+      count: allCount,
+      label: totalResults <= 20 ? `All ${totalResults}` : `Top 20`,
+      description: totalResults <= 20 ? 'Complete analysis' : 'Max recommendations',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
@@ -43,11 +45,11 @@ export default function ResultCountSelector({ totalResults, onSelect, disabled }
     })
   }
 
-  // If only 1-2 results, just show that
-  if (options.length === 0) {
+  // If less than 3 results, just show what we have
+  if (totalResults < 3 && options.length === 0) {
     options.push({
       count: totalResults,
-      label: totalResults === 1 ? 'View Session' : `View ${totalResults} Sessions`,
+      label: totalResults === 1 ? 'View Session' : `View ${totalResults}`,
       description: 'See all matches',
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
