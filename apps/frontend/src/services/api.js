@@ -108,7 +108,7 @@ export const visitorsService = {
 }
 
 export const aiService = {
-  search: (query) => api.post('/ai/search', { query }),
+  search: (query, sessionId) => api.post('/ai/search', { query, session_id: sessionId }),
   getReasoning: (query, sessionIds) => api.post('/ai/reasoning', { query, session_ids: sessionIds }),
   getSessions: (params) => api.get('/ai/sessions', { params }),
   getSession: (id) => api.get(`/ai/sessions/${id}`),

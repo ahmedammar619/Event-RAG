@@ -6,6 +6,37 @@ import {
   getSessionById,
   logQuery
 } from '../services/ragService.js';
+
+/**
+ * Parse user agent string to extract device, browser, and OS info
+ */
+function parseUserAgent(ua) {
+  if (!ua) return { device: 'unknown', browser: 'unknown', os: 'unknown' };
+
+  // Device detection
+  let device = 'desktop';
+  if (/mobile/i.test(ua)) device = 'mobile';
+  else if (/tablet|ipad/i.test(ua)) device = 'tablet';
+
+  // Browser detection
+  let browser = 'unknown';
+  if (/chrome/i.test(ua) && !/edge|edg/i.test(ua)) browser = 'Chrome';
+  else if (/safari/i.test(ua) && !/chrome/i.test(ua)) browser = 'Safari';
+  else if (/firefox/i.test(ua)) browser = 'Firefox';
+  else if (/edge|edg/i.test(ua)) browser = 'Edge';
+  else if (/opera|opr/i.test(ua)) browser = 'Opera';
+  else if (/msie|trident/i.test(ua)) browser = 'IE';
+
+  // OS detection
+  let os = 'unknown';
+  if (/windows/i.test(ua)) os = 'Windows';
+  else if (/mac os|macos/i.test(ua)) os = 'macOS';
+  else if (/linux/i.test(ua) && !/android/i.test(ua)) os = 'Linux';
+  else if (/android/i.test(ua)) os = 'Android';
+  else if (/iphone|ipad|ipod/i.test(ua)) os = 'iOS';
+
+  return { device, browser, os };
+}
 import {
   getAllSettings,
   getSearchMode,
@@ -35,8 +66,10 @@ export default async function aiRoutes(fastify, options) {
   // ==========================================
 
   // POST /api/ai/search
-  fastify.post('/search', async (request, reply) => {
-    const { query } = request.body;
+  fastify.post('/search', {
+    preHandler: [fastify.optionalAuth]
+  }, async (request, reply) => {
+    const { query, session_id } = request.body;
 
     if (!query || query.trim().length === 0) {
       throw validationError('Query is required');
@@ -51,15 +84,42 @@ export default async function aiRoutes(fastify, options) {
     // Perform search (mode is determined by settings)
     const results = await searchSessions(ragDb, query.trim(), { limit: limit * 3 }); // Get more than needed for selection
 
-    // Log the query for analytics (optional visitor ID from token)
+    // Log the query for analytics
     try {
       const visitorId = request.user?.role === 'visitor' ? request.user.id : null;
+
+      // Get IP address (handle proxies)
+      const ip_address = request.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                         request.headers['x-real-ip'] ||
+                         request.ip ||
+                         null;
+
+      // Get user agent
+      const user_agent = request.headers['user-agent'] || null;
+
+      // Parse user agent for device info
+      const deviceInfo = parseUserAgent(user_agent);
+
+      // Get referer
+      const referer = request.headers['referer'] || request.headers['referrer'] || null;
+
       await logQuery(ragDb, visitorId, {
         query_original: results.query_original,
         query_english: results.query_english,
         language_detected: results.language_detected,
         results_count: results.total_matches,
-        search_mode: results.mode
+        search_mode: results.mode,
+        // Analytics data
+        ip_address,
+        user_agent,
+        device_type: deviceInfo.device,
+        browser: deviceInfo.browser,
+        os: deviceInfo.os,
+        country: null, // Would need IP geolocation service
+        city: null,
+        region: null,
+        referer,
+        session_id: session_id || null
       });
     } catch (err) {
       // Don't fail the request if logging fails
@@ -256,33 +316,97 @@ export default async function aiRoutes(fastify, options) {
     }
 
     const { days = 7 } = request.query;
+    const daysInt = parseInt(days);
 
-    // Get daily stats
-    const dailyStats = await ragDb.query(`
-      SELECT * FROM search_stats_daily
-      WHERE date >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
-      ORDER BY date DESC
-    `);
-
-    // Get model usage
-    const modelUsage = await ragDb.query('SELECT * FROM model_usage_stats');
-
-    // Get totals
+    // Get totals from query_logs (primary source)
     const totals = await ragDb.query(`
       SELECT
         COUNT(*) as total_searches,
-        COUNT(DISTINCT visitor_id) as unique_visitors,
-        AVG(search_duration_ms)::integer as avg_search_ms,
-        AVG(reasoning_duration_ms)::integer as avg_reasoning_ms,
-        COUNT(*) FILTER (WHERE reasoning_requested) as total_reasoning_requests
-      FROM search_analytics
-      WHERE created_at >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
+        COUNT(DISTINCT visitor_id) FILTER (WHERE visitor_id IS NOT NULL) as logged_in_users,
+        COUNT(DISTINCT ip_address) as unique_ips,
+        COUNT(DISTINCT session_id) as unique_sessions,
+        COUNT(*) FILTER (WHERE detected_language = 'arabic') as arabic_queries,
+        COUNT(*) FILTER (WHERE detected_language = 'english') as english_queries,
+        COUNT(*) FILTER (WHERE device_type = 'mobile') as mobile_queries,
+        COUNT(*) FILTER (WHERE device_type = 'desktop') as desktop_queries,
+        COUNT(*) FILTER (WHERE device_type = 'tablet') as tablet_queries
+      FROM query_logs
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${daysInt} days'
     `);
 
+    // Get daily breakdown
+    const dailyStats = await ragDb.query(`
+      SELECT
+        DATE(created_at) as date,
+        COUNT(*) as searches,
+        COUNT(DISTINCT visitor_id) FILTER (WHERE visitor_id IS NOT NULL) as logged_in,
+        COUNT(DISTINCT ip_address) as unique_ips,
+        COUNT(*) FILTER (WHERE detected_language = 'arabic') as arabic,
+        COUNT(*) FILTER (WHERE device_type = 'mobile') as mobile
+      FROM query_logs
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${daysInt} days'
+      GROUP BY DATE(created_at)
+      ORDER BY date DESC
+    `);
+
+    // Get device breakdown
+    const deviceStats = await ragDb.query(`
+      SELECT
+        device_type,
+        browser,
+        os,
+        COUNT(*) as count
+      FROM query_logs
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${daysInt} days'
+        AND device_type IS NOT NULL
+      GROUP BY device_type, browser, os
+      ORDER BY count DESC
+      LIMIT 20
+    `);
+
+    // Get top queries
+    const topQueries = await ragDb.query(`
+      SELECT
+        query_original,
+        detected_language,
+        COUNT(*) as count,
+        AVG(results_count)::integer as avg_results
+      FROM query_logs
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${daysInt} days'
+      GROUP BY query_original, detected_language
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    // Get geographic breakdown (if available)
+    const geoStats = await ragDb.query(`
+      SELECT
+        country,
+        COUNT(*) as count,
+        COUNT(DISTINCT ip_address) as unique_visitors
+      FROM query_logs
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${daysInt} days'
+        AND country IS NOT NULL
+      GROUP BY country
+      ORDER BY count DESC
+      LIMIT 10
+    `);
+
+    // Try to get from search_analytics too (if exists)
+    let modelUsage = { rows: [] };
+    try {
+      modelUsage = await ragDb.query('SELECT * FROM model_usage_stats');
+    } catch (err) {
+      // View might not exist
+    }
+
     return success({
+      totals: totals.rows[0],
       daily: dailyStats.rows,
-      model_usage: modelUsage.rows,
-      totals: totals.rows[0]
+      devices: deviceStats.rows,
+      top_queries: topQueries.rows,
+      geography: geoStats.rows,
+      model_usage: modelUsage.rows
     });
   });
 

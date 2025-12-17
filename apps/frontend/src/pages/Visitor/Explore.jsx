@@ -16,6 +16,16 @@ const EXAMPLE_QUERIES = [
   "Arabic language sessions"
 ]
 
+// Generate a unique session ID for analytics tracking
+const getSessionId = () => {
+  let sessionId = sessionStorage.getItem('explore_session_id')
+  if (!sessionId) {
+    sessionId = `ses_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    sessionStorage.setItem('explore_session_id', sessionId)
+  }
+  return sessionId
+}
+
 export default function Explore() {
   const navigate = useNavigate()
   const toast = useToast()
@@ -28,19 +38,7 @@ export default function Explore() {
   const [selectedCount, setSelectedCount] = useState(null)
   const [recommendations, setRecommendations] = useState(null)
   const [reasoningMode, setReasoningMode] = useState('full') // 'full' or 'embedding_only'
-
-  // Fetch reasoning mode on mount
-  useEffect(() => {
-    const fetchHealth = async () => {
-      try {
-        const response = await aiService.getHealth()
-        // The health endpoint doesn't include reasoning mode, so we'll detect it from search results
-      } catch (err) {
-        // Ignore - will use default 'full' mode
-      }
-    }
-    fetchHealth()
-  }, [])
+  const [sessionId] = useState(getSessionId) // Stable session ID for this browser session
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -58,7 +56,7 @@ export default function Explore() {
     setRecommendations(null)
 
     try {
-      const response = await aiService.search(query.trim())
+      const response = await aiService.search(query.trim(), sessionId)
       const results = response.data.data
       setSearchResults(results)
 

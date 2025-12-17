@@ -289,10 +289,33 @@ export async function getSessionById(ragDb, sessionId) {
  * Log a search query for analytics
  */
 export async function logQuery(ragDb, visitorId, queryData) {
-  const { query_original, query_english, language_detected, results_count, search_mode } = queryData;
+  const {
+    query_original,
+    query_english,
+    language_detected,
+    results_count,
+    search_mode,
+    // New analytics fields
+    ip_address,
+    user_agent,
+    device_type,
+    browser,
+    os,
+    country,
+    city,
+    region,
+    referer,
+    session_id
+  } = queryData;
 
   await ragDb.query(`
-    INSERT INTO query_logs (visitor_id, query_original, query_english, detected_language, results_count, search_mode)
-    VALUES ($1, $2, $3, $4, $5, $6)
-  `, [visitorId, query_original, query_english, language_detected, results_count, search_mode]);
+    INSERT INTO query_logs (
+      visitor_id, query_original, query_english, detected_language, results_count, search_mode,
+      ip_address, user_agent, device_type, browser, os, country, city, region, referer, session_id
+    )
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+  `, [
+    visitorId, query_original, query_english, language_detected, results_count, search_mode,
+    ip_address, user_agent, device_type, browser, os, country, city, region, referer, session_id
+  ]);
 }
