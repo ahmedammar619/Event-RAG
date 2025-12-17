@@ -63,3 +63,33 @@ export async function setDefaultResultCount(ragDb, count) {
 
   return await updateSetting(ragDb, 'default_result_count', num.toString());
 }
+
+// LLM Model setting
+export async function getLlmModel(ragDb) {
+  const model = await getSetting(ragDb, 'llm_model');
+  return model || 'gemma3:270m';
+}
+
+export async function setLlmModel(ragDb, model) {
+  const validModels = ['gemma3:270m', 'gemma3-4b'];
+  if (!validModels.includes(model)) {
+    throw new Error(`Invalid model. Must be one of: ${validModels.join(', ')}`);
+  }
+
+  return await updateSetting(ragDb, 'llm_model', model);
+}
+
+// Reasoning mode setting
+export async function getReasoningMode(ragDb) {
+  const mode = await getSetting(ragDb, 'reasoning_mode');
+  return mode || 'full';
+}
+
+export async function setReasoningMode(ragDb, mode) {
+  const validModes = ['full', 'embedding_only'];
+  if (!validModes.includes(mode)) {
+    throw new Error(`Invalid reasoning mode. Must be one of: ${validModes.join(', ')}`);
+  }
+
+  return await updateSetting(ragDb, 'reasoning_mode', mode);
+}

@@ -6,9 +6,10 @@
 import { generateEmbedding } from './embeddingService.js';
 import { detectLanguage, translateToEnglish } from './languageService.js';
 import { parseQuery, buildSQLFilters } from './queryParserService.js';
-import { getSearchMode, getDefaultResultCount } from './aiSettingsService.js';
+import { getSearchMode, getDefaultResultCount, getLlmModel, getReasoningMode } from './aiSettingsService.js';
 
 const OLLAMA_URL = process.env.OLLAMA_URL || 'https://ollama-production-2290.up.railway.app';
+const OLLAMA_4B_URL = process.env.OLLAMA_4B_URL || 'https://gemma3-4b-production.up.railway.app';
 
 /**
  * Main search function - routes to appropriate mode based on settings
@@ -123,11 +124,28 @@ export async function searchSessionsSmart(ragDb, query, options = {}) {
 
 /**
  * Generate AI reasoning for selected sessions
+ * @param {object} ragDb - Database connection
+ * @param {string} query - User's original query
+ * @param {array} sessions - Sessions to generate reasoning for
  */
-export async function generateReasoning(query, sessions) {
+export async function generateReasoning(ragDb, query, sessions) {
   if (!sessions || sessions.length === 0) {
     return [];
   }
+
+  // Check reasoning mode - if embedding_only, skip LLM call
+  const reasoningMode = await getReasoningMode(ragDb);
+  if (reasoningMode === 'embedding_only') {
+    return sessions.map(s => ({
+      ...s,
+      reasoning: null // No AI reasoning in embedding-only mode
+    }));
+  }
+
+  // Get the configured LLM model
+  const llmModel = await getLlmModel(ragDb);
+  const ollamaUrl = llmModel === 'gemma3-4b' ? OLLAMA_4B_URL : OLLAMA_URL;
+  const modelName = llmModel === 'gemma3-4b' ? 'gemma3-4b' : 'gemma3:270m';
 
   const sessionSummaries = sessions.map((s, i) => {
     const session = s.session || s;
@@ -145,11 +163,11 @@ For each session, provide a brief 1-2 sentence explanation of why it might be re
 Format your response as a numbered list matching the session numbers above:`;
 
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
+    const response = await fetch(`${ollamaUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'gemma3:270m',
+        model: modelName,
         prompt,
         stream: false
       })

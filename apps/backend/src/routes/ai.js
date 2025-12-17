@@ -11,7 +11,11 @@ import {
   getSearchMode,
   setSearchMode,
   getDefaultResultCount,
-  setDefaultResultCount
+  setDefaultResultCount,
+  getLlmModel,
+  setLlmModel,
+  getReasoningMode,
+  setReasoningMode
 } from '../services/aiSettingsService.js';
 import { testEmbeddingService } from '../services/embeddingService.js';
 import { testLanguageService } from '../services/languageService.js';
@@ -101,8 +105,8 @@ export default async function aiRoutes(fastify, options) {
       }
     }));
 
-    // Generate AI reasoning
-    const withReasoning = await generateReasoning(query, sessions);
+    // Generate AI reasoning (passes ragDb for settings lookup)
+    const withReasoning = await generateReasoning(ragDb, query, sessions);
 
     return success({
       query,
@@ -192,6 +196,87 @@ export default async function aiRoutes(fastify, options) {
     await setDefaultResultCount(ragDb, count);
 
     return success({ default_result_count: count });
+  });
+
+  // PUT /api/ai/settings/llm-model (admin only)
+  fastify.put('/settings/llm-model', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    if (request.user.role !== 'admin') {
+      throw validationError('Admin access required');
+    }
+
+    const { model } = request.body;
+
+    if (!model || !['gemma3:270m', 'gemma3-4b'].includes(model)) {
+      throw validationError('Model must be "gemma3:270m" or "gemma3-4b"');
+    }
+
+    await setLlmModel(ragDb, model);
+
+    return success({ llm_model: model });
+  });
+
+  // PUT /api/ai/settings/reasoning-mode (admin only)
+  fastify.put('/settings/reasoning-mode', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    if (request.user.role !== 'admin') {
+      throw validationError('Admin access required');
+    }
+
+    const { mode } = request.body;
+
+    if (!mode || !['full', 'embedding_only'].includes(mode)) {
+      throw validationError('Mode must be "full" or "embedding_only"');
+    }
+
+    await setReasoningMode(ragDb, mode);
+
+    return success({ reasoning_mode: mode });
+  });
+
+  // ==========================================
+  // Analytics Endpoints
+  // ==========================================
+
+  // GET /api/ai/analytics (admin only)
+  fastify.get('/analytics', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    if (request.user.role !== 'admin') {
+      throw validationError('Admin access required');
+    }
+
+    const { days = 7 } = request.query;
+
+    // Get daily stats
+    const dailyStats = await ragDb.query(`
+      SELECT * FROM search_stats_daily
+      WHERE date >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
+      ORDER BY date DESC
+    `);
+
+    // Get model usage
+    const modelUsage = await ragDb.query('SELECT * FROM model_usage_stats');
+
+    // Get totals
+    const totals = await ragDb.query(`
+      SELECT
+        COUNT(*) as total_searches,
+        COUNT(DISTINCT visitor_id) as unique_visitors,
+        AVG(search_duration_ms)::integer as avg_search_ms,
+        AVG(reasoning_duration_ms)::integer as avg_reasoning_ms,
+        COUNT(*) FILTER (WHERE reasoning_requested) as total_reasoning_requests
+      FROM search_analytics
+      WHERE created_at >= CURRENT_DATE - INTERVAL '${parseInt(days)} days'
+    `);
+
+    return success({
+      daily: dailyStats.rows,
+      model_usage: modelUsage.rows,
+      totals: totals.rows[0]
+    });
   });
 
   // ==========================================

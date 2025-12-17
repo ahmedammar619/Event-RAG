@@ -8,7 +8,9 @@ export default function AISettings() {
   const [saving, setSaving] = useState(false)
   const [settings, setSettings] = useState({
     search_mode: 'direct',
-    default_result_count: '5'
+    default_result_count: '5',
+    llm_model: 'gemma3:270m',
+    reasoning_mode: 'full'
   })
   const [health, setHealth] = useState(null)
 
@@ -37,27 +39,14 @@ export default function AISettings() {
     }
   }
 
-  const handleModeChange = async (mode) => {
+  const handleSettingChange = async (settingKey, value, apiCall) => {
     setSaving(true)
     try {
-      await aiService.setSearchMode(mode)
-      setSettings({ ...settings, search_mode: mode })
-      toast.success(`Search mode changed to ${mode}`)
+      await apiCall(value)
+      setSettings({ ...settings, [settingKey]: value })
+      toast.success('Setting updated')
     } catch (err) {
-      toast.error('Failed to update search mode')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const handleResultCountChange = async (count) => {
-    setSaving(true)
-    try {
-      await aiService.setResultCount(count)
-      setSettings({ ...settings, default_result_count: count.toString() })
-      toast.success('Default result count updated')
-    } catch (err) {
-      toast.error('Failed to update result count')
+      toast.error('Failed to update setting')
     } finally {
       setSaving(false)
     }
@@ -128,105 +117,134 @@ export default function AISettings() {
         )}
       </div>
 
-      {/* Search Mode */}
+      {/* Settings Table */}
       <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Search Mode</h2>
-        <p className="text-slate-500 text-sm mb-4">Choose how the AI processes user queries</p>
+        <h2 className="text-lg font-semibold mb-4">Configuration</h2>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 px-4 font-medium text-slate-600">Setting</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-600">Description</th>
+                <th className="text-left py-3 px-4 font-medium text-slate-600">Value</th>
+              </tr>
+            </thead>
+            <tbody>
+              {/* Search Mode */}
+              <tr className="border-b border-slate-100">
+                <td className="py-4 px-4 font-medium text-slate-800">Search Mode</td>
+                <td className="py-4 px-4 text-sm text-slate-600">
+                  <strong>Direct:</strong> Pure vector search (~400ms)<br/>
+                  <strong>Smart:</strong> LLM parses query + filters (~800ms)
+                </td>
+                <td className="py-4 px-4">
+                  <select
+                    value={settings.search_mode}
+                    onChange={(e) => handleSettingChange('search_mode', e.target.value, aiService.setSearchMode)}
+                    disabled={saving}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="direct">Direct Vector</option>
+                    <option value="smart">Smart Hybrid</option>
+                  </select>
+                </td>
+              </tr>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <button
-            onClick={() => handleModeChange('direct')}
-            disabled={saving}
-            className={`p-4 rounded-xl border-2 text-left transition-all ${
-              settings.search_mode === 'direct'
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`w-4 h-4 rounded-full border-2 ${
-                settings.search_mode === 'direct'
-                  ? 'border-purple-500 bg-purple-500'
-                  : 'border-slate-300'
-              }`}>
-                {settings.search_mode === 'direct' && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                  </div>
-                )}
-              </div>
-              <span className="font-semibold">Direct Vector Search</span>
-            </div>
-            <p className="text-sm text-slate-600 ml-7">
-              Faster (~400ms) and cheaper. Best for simple semantic queries like "sessions about spirituality".
-            </p>
-          </button>
+              {/* Reasoning Mode */}
+              <tr className="border-b border-slate-100">
+                <td className="py-4 px-4 font-medium text-slate-800">Reasoning Mode</td>
+                <td className="py-4 px-4 text-sm text-slate-600">
+                  <strong>Full:</strong> AI generates explanations for each result<br/>
+                  <strong>Embedding Only:</strong> No AI reasoning, just similarity scores
+                </td>
+                <td className="py-4 px-4">
+                  <select
+                    value={settings.reasoning_mode}
+                    onChange={(e) => handleSettingChange('reasoning_mode', e.target.value, aiService.setReasoningMode)}
+                    disabled={saving}
+                    className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  >
+                    <option value="full">Full AI Reasoning</option>
+                    <option value="embedding_only">Embedding Only (No AI)</option>
+                  </select>
+                </td>
+              </tr>
 
-          <button
-            onClick={() => handleModeChange('smart')}
-            disabled={saving}
-            className={`p-4 rounded-xl border-2 text-left transition-all ${
-              settings.search_mode === 'smart'
-                ? 'border-purple-500 bg-purple-50'
-                : 'border-slate-200 hover:border-slate-300'
-            }`}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <div className={`w-4 h-4 rounded-full border-2 ${
-                settings.search_mode === 'smart'
-                  ? 'border-purple-500 bg-purple-500'
-                  : 'border-slate-300'
-              }`}>
-                {settings.search_mode === 'smart' && (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+              {/* LLM Model */}
+              <tr className="border-b border-slate-100">
+                <td className="py-4 px-4 font-medium text-slate-800">LLM Model</td>
+                <td className="py-4 px-4 text-sm text-slate-600">
+                  <strong>gemma3:270m:</strong> Fast, good quality (~3-5s)<br/>
+                  <strong>gemma3-4b:</strong> Better quality, slower (~10-15s)
+                </td>
+                <td className="py-4 px-4">
+                  <select
+                    value={settings.llm_model}
+                    onChange={(e) => handleSettingChange('llm_model', e.target.value, aiService.setLlmModel)}
+                    disabled={saving || settings.reasoning_mode === 'embedding_only'}
+                    className={`px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 ${settings.reasoning_mode === 'embedding_only' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
+                    <option value="gemma3:270m">Gemma 3 (270M) - Fast</option>
+                    <option value="gemma3-4b">Gemma 3 (4B) - Quality</option>
+                  </select>
+                </td>
+              </tr>
+
+              {/* Default Result Count */}
+              <tr className="border-b border-slate-100">
+                <td className="py-4 px-4 font-medium text-slate-800">Default Results</td>
+                <td className="py-4 px-4 text-sm text-slate-600">
+                  Number of results to return in initial search
+                </td>
+                <td className="py-4 px-4">
+                  <div className="flex gap-2">
+                    {[5, 10, 15, 20].map(count => (
+                      <button
+                        key={count}
+                        onClick={() => handleSettingChange('default_result_count', count.toString(), aiService.setResultCount)}
+                        disabled={saving}
+                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                          parseInt(settings.default_result_count) === count
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        }`}
+                      >
+                        {count}
+                      </button>
+                    ))}
                   </div>
-                )}
-              </div>
-              <span className="font-semibold">Smart Hybrid Search</span>
-            </div>
-            <p className="text-sm text-slate-600 ml-7">
-              More accurate (~800ms). Parses queries to extract filters. Best for "morning sessions by Dr. Haifaa about family".
-            </p>
-          </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
-      {/* Default Result Count */}
-      <div className="card">
-        <h2 className="text-lg font-semibold mb-4">Default Results to Return</h2>
-        <p className="text-slate-500 text-sm mb-4">How many results to fetch in the initial search</p>
-
-        <div className="flex gap-2">
-          {[5, 10, 15, 20].map(count => (
-            <button
-              key={count}
-              onClick={() => handleResultCountChange(count)}
-              disabled={saving}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                parseInt(settings.default_result_count) === count
-                  ? 'bg-purple-600 text-white'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-              }`}
-            >
-              {count}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Info */}
+      {/* Cost Info */}
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <div className="flex gap-3">
           <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm text-blue-800">
-            <p className="font-medium mb-1">Cost Optimization</p>
-            <p>LLM reasoning is only generated when users explicitly request it after seeing search results. This significantly reduces Railway compute costs while maintaining a great user experience.</p>
+            <p className="font-medium mb-1">Cost Optimization Tips</p>
+            <ul className="list-disc ml-4 space-y-1">
+              <li><strong>Embedding Only mode</strong> has zero LLM costs - great for high traffic</li>
+              <li><strong>Direct search</strong> is faster and doesn't use LLM for query parsing</li>
+              <li><strong>Gemma 270M</strong> is significantly cheaper than 4B model</li>
+              <li>LLM reasoning only runs when users explicitly request it after seeing results</li>
+            </ul>
           </div>
         </div>
       </div>
+
+      {/* Saving Indicator */}
+      {saving && (
+        <div className="fixed bottom-4 right-4 bg-slate-800 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+          Saving...
+        </div>
+      )}
     </div>
   )
 }

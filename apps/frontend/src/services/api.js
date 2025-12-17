@@ -115,5 +115,8 @@ export const aiService = {
   getSettings: () => api.get('/ai/settings'),
   setSearchMode: (mode) => api.put('/ai/settings/search-mode', { mode }),
   setResultCount: (count) => api.put('/ai/settings/result-count', { count }),
-  getHealth: () => api.get('/ai/health')
+  setLlmModel: (model) => api.put('/ai/settings/llm-model', { model }),
+  setReasoningMode: (mode) => api.put('/ai/settings/reasoning-mode', { mode }),
+  getHealth: () => api.get('/ai/health'),
+  getAnalytics: (days) => api.get('/ai/analytics', { params: { days } })
 }

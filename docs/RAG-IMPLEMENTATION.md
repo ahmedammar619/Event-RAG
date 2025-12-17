@@ -155,16 +155,16 @@ INSERT INTO ai_settings (key, value) VALUES
 
 ### Local Development (.env file)
 ```env
-# Main Database (existing)
-DATABASE_URL=postgres://user:pass@host:port/dbname
+> **Environment variables (example only — do NOT commit real credentials)**
+>
+> Configure these in your local `.env` / deployment secrets:
+>
+> - `DATABASE_URL=postgres://USER:PASS@HOST:PORT/DBNAME`
+> - `RAG_DATABASE_URL=postgres://RAG_USER:RAG_PASS@RAG_HOST:RAG_PORT/RAG_DBNAME`
+> - `OLLAMA_URL=https://your-ollama-endpoint.example.com`
+> - `OLLAMA_4B_URL=https://your-ollama-4b-endpoint.example.com`
+> - `EMBEDDING_URL=https://your-embedding-endpoint.example.com`
 
-# RAG Database (pgvector)
-RAG_DATABASE_URL=postgres://vewoz_rag:BbWnPojv~Dz8EhNBfFX~uQJdGLV6d6-6@switchback.proxy.rlwy.net:25350/vewoz_rag
-
-# AI Services (Railway - Ollama)
-OLLAMA_URL=https://ollama-production-2290.up.railway.app
-OLLAMA_4B_URL=https://gemma3-4b-production.up.railway.app
-EMBEDDING_URL=https://nomic-embed-text-production.up.railway.app
 
 # Translation API (optional - falls back to Ollama)
 LIBRETRANSLATE_URL=
