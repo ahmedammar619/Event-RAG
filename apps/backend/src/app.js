@@ -4,6 +4,7 @@ import jwt from '@fastify/jwt';
 import dotenv from 'dotenv';
 import pg from 'pg';
 import { dbPlugin } from './plugins/db.js';
+import { ragDbPlugin } from './plugins/ragDb.js';
 import { authPlugin } from './plugins/auth.js';
 import routes from './routes/index.js';
 
@@ -115,6 +116,7 @@ await fastify.register(jwt, {
 });
 
 await fastify.register(dbPlugin);
+await fastify.register(ragDbPlugin);
 await fastify.register(authPlugin);
 
 // Register routes

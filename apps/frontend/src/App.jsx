@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { useModerator } from './context/ModeratorContext'
+import { useVisitor } from './context/VisitorContext'
 import useAnalytics from './hooks/useAnalytics'
 
 // Public pages
@@ -19,11 +20,17 @@ import Moderators from './pages/Admin/Moderators'
 import Assignments from './pages/Admin/Assignments'
 import Export from './pages/Admin/Export'
 import Analytics from './pages/Admin/Analytics'
+import AISettings from './pages/Admin/AISettings'
 
 // Moderator pages
 import ModeratorLayout from './components/layout/ModeratorLayout'
 import Schedule from './pages/Moderator/Schedule'
 import Settings from './pages/Moderator/Settings'
+
+// Visitor pages
+import VisitorLogin from './pages/Visitor/Login'
+import VisitorRegister from './pages/Visitor/Register'
+import Explore from './pages/Visitor/Explore'
 
 function AdminProtectedRoute({ children }) {
   const { isAuthenticated, loading } = useAuth()
@@ -48,6 +55,20 @@ function ModeratorProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/lookup" replace />
+  }
+
+  return children
+}
+
+function VisitorProtectedRoute({ children }) {
+  const { isAuthenticated, loading } = useVisitor()
+
+  if (loading) {
+    return <div className="loading"><div className="spinner"></div></div>
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/visitor/login" replace />
   }
 
   return children
@@ -87,6 +108,7 @@ function App() {
         <Route path="assignments" element={<Assignments />} />
         <Route path="export" element={<Export />} />
         <Route path="analytics" element={<Analytics />} />
+        <Route path="ai-settings" element={<AISettings />} />
       </Route>
 
       {/* Moderator Portal Routes */}
@@ -101,6 +123,18 @@ function App() {
         <Route index element={<Schedule />} />
         <Route path="availability" element={<Settings />} />
       </Route>
+
+      {/* Visitor Routes */}
+      <Route path="/visitor/login" element={<VisitorLogin />} />
+      <Route path="/visitor/register" element={<VisitorRegister />} />
+      <Route
+        path="/explore"
+        element={
+          <VisitorProtectedRoute>
+            <Explore />
+          </VisitorProtectedRoute>
+        }
+      />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

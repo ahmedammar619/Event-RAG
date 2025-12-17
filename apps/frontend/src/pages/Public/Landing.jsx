@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom'
 import { useModerator } from '../../context/ModeratorContext'
 import { useAuth } from '../../context/AuthContext'
+import { useVisitor } from '../../context/VisitorContext'
 import Header from '../../components/common/Header'
 import Footer from '../../components/common/Footer'
 
 export default function Landing() {
   const { isAuthenticated: isModeratorLoggedIn, moderator } = useModerator()
   const { isAuthenticated: isAdminLoggedIn } = useAuth()
+  const { isAuthenticated: isVisitorLoggedIn, visitor } = useVisitor()
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
@@ -82,6 +84,46 @@ export default function Landing() {
               <p className="text-slate-500 text-sm">We'll assign you to sessions automatically</p>
             </div>
           </div>
+        </div>
+
+        {/* Visitor Section - AI Session Finder */}
+        <div className="bg-white rounded-2xl p-6 md:p-10 max-w-3xl w-full shadow-lg border border-slate-200 mt-8">
+          <div className="text-center mb-6">
+            <span className="text-4xl mb-2 block">🤖</span>
+            <h2 className="text-xl md:text-2xl font-bold text-slate-800 mb-2">Attending MASCON?</h2>
+            <p className="text-slate-600">
+              Use our AI-powered session finder to discover sessions perfect for you!
+            </p>
+          </div>
+
+          {isVisitorLoggedIn ? (
+            <div className="flex flex-col items-center gap-3">
+              <Link
+                to="/explore"
+                className="btn btn-lg bg-purple-600 text-white hover:bg-purple-700 no-underline"
+              >
+                Explore Sessions
+              </Link>
+              <p className="text-slate-500 text-sm">
+                Welcome back, {visitor?.name}!
+              </p>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                to="/visitor/login"
+                className="btn btn-lg bg-purple-600 text-white hover:bg-purple-700 no-underline"
+              >
+                Find Sessions with AI
+              </Link>
+              <Link
+                to="/visitor/register"
+                className="btn btn-lg bg-slate-100 text-slate-700 hover:bg-slate-200 no-underline border border-slate-300"
+              >
+                Register as Visitor
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       <Footer />

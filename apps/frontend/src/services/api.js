@@ -94,3 +94,20 @@ export const analyticsService = {
   track: (data) => api.post('/analytics/track', data).catch(() => {}), // Silent fail
   getAnalytics: (params) => api.get('/analytics', { params })
 }
+
+export const visitorsService = {
+  register: (data) => api.post('/visitors/register', data),
+  login: (email) => api.post('/visitors/login', { email }),
+  getMe: () => api.get('/visitors/me')
+}
+
+export const aiService = {
+  search: (query) => api.post('/ai/search', { query }),
+  getReasoning: (query, sessionIds) => api.post('/ai/reasoning', { query, session_ids: sessionIds }),
+  getSessions: (params) => api.get('/ai/sessions', { params }),
+  getSession: (id) => api.get(`/ai/sessions/${id}`),
+  getSettings: () => api.get('/ai/settings'),
+  setSearchMode: (mode) => api.put('/ai/settings/search-mode', { mode }),
+  setResultCount: (count) => api.put('/ai/settings/result-count', { count }),
+  getHealth: () => api.get('/ai/health')
+}
