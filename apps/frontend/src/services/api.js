@@ -10,11 +10,17 @@ const api = axios.create({
   }
 })
 
-// Add token from localStorage if exists
-const token = localStorage.getItem('admin_token')
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-}
+// Request interceptor - adds auth token dynamically on each request
+api.interceptors.request.use((config) => {
+  const adminToken = localStorage.getItem('admin_token')
+  const visitorToken = localStorage.getItem('visitor_token')
+  const moderatorToken = localStorage.getItem('moderator_token')
+  const token = adminToken || visitorToken || moderatorToken
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 // Response interceptor for error handling
 api.interceptors.response.use(

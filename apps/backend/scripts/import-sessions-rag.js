@@ -18,29 +18,31 @@ const pool = new Pool({
 });
 
 const EMBEDDING_URL = process.env.EMBEDDING_URL || 'https://nomic-embed-text-production.up.railway.app';
+const BATCH_SIZE = 20; // Process 20 sessions at a time for efficiency
 
-async function generateEmbedding(text) {
-  const response = await fetch(`${EMBEDDING_URL}/api/embeddings`, {
+// Batch embedding generation - sends multiple texts in one API call
+async function generateEmbeddingsBatch(texts) {
+  const response = await fetch(`${EMBEDDING_URL}/api/embed`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'nomic-embed-text',
-      prompt: text
+      model: 'nomic-embed-text-v2-moe',
+      input: texts
     })
   });
 
   if (!response.ok) {
-    throw new Error(`Embedding API error: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`Embedding API error: ${response.status} - ${errorText}`);
   }
 
   const data = await response.json();
-  return data.embedding;
+  return data.embeddings; // Returns array of embeddings
 }
 
 function parseTime(timeStr) {
   if (!timeStr) return null;
 
-  // Handle formats like "10:00 AM", "2:00 PM"
   const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
   if (!match) return null;
 
@@ -62,7 +64,6 @@ function parseTime(timeStr) {
 function parseDate(dateStr) {
   if (!dateStr) return null;
 
-  // Handle formats like "12/24/2025"
   const match = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})/);
   if (!match) return null;
 
@@ -94,15 +95,16 @@ async function main() {
 
   console.log(`Found ${records.length} sessions`);
   console.log(`Embedding URL: ${EMBEDDING_URL}`);
+  console.log(`Batch size: ${BATCH_SIZE}`);
 
   // Clear existing data
   console.log('\nClearing existing session data...');
   await pool.query('DELETE FROM session_embeddings');
   await pool.query('DELETE FROM sessions');
 
-  let importedCount = 0;
-  let embeddedCount = 0;
-  let errors = [];
+  // First pass: Insert all sessions and prepare searchable texts
+  console.log('\n--- Phase 1: Importing sessions ---');
+  const sessionsToEmbed = [];
 
   for (let i = 0; i < records.length; i++) {
     const record = records[i];
@@ -117,19 +119,14 @@ async function main() {
     const sessionType = record['Session or Sub-session(Sub)'] || 'Session';
     const tags = record['Tags'] || '';
 
-    // Use translated description if available, otherwise use original
     const descriptionOriginal = record['Description_Original'] || record['Description'] || '';
     const descriptionEnglish = record['Description_English'] || record['Description'] || '';
 
     if (!title || !date || !timeStart || !timeEnd) {
-      console.log(`Skipping row ${i + 1}: Missing required fields`);
       continue;
     }
 
-    console.log(`\nImporting ${i + 1}/${records.length}: ${title.substring(0, 50)}...`);
-
     try {
-      // Insert session
       const insertResult = await pool.query(`
         INSERT INTO sessions (date, time_start, time_end, track, title, room, description_original, description_english, speakers, session_type, tags)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -137,70 +134,101 @@ async function main() {
       `, [date, timeStart, timeEnd, track, title, room, descriptionOriginal, descriptionEnglish, speakers, sessionType, tags]);
 
       const sessionId = insertResult.rows[0].id;
-      importedCount++;
 
-      // Generate searchable text for embedding
-      const searchableText = `
-Title: ${title}
-Track: ${track}
-Speakers: ${speakers}
-Description: ${descriptionEnglish}
-      `.trim();
+      const searchableText = `Title: ${title}\nTrack: ${track}\nSpeakers: ${speakers}\nDescription: ${descriptionEnglish}`.trim();
 
-      // Generate embedding
-      console.log('  Generating embedding...');
-      try {
-        const embedding = await generateEmbedding(searchableText);
+      sessionsToEmbed.push({
+        id: sessionId,
+        title,
+        searchableText
+      });
 
-        if (embedding && Array.isArray(embedding)) {
-          // Insert embedding
-          await pool.query(`
-            INSERT INTO session_embeddings (session_id, embedding, searchable_text)
-            VALUES ($1, $2::vector, $3)
-          `, [sessionId, `[${embedding.join(',')}]`, searchableText]);
-
-          embeddedCount++;
-          console.log('  Embedding saved');
-        } else {
-          console.log('  Warning: Invalid embedding response');
-        }
-      } catch (embErr) {
-        console.log(`  Embedding failed: ${embErr.message}`);
-        errors.push({ session: title, error: embErr.message });
+      if (sessionsToEmbed.length % 50 === 0) {
+        console.log(`  Imported ${sessionsToEmbed.length} sessions...`);
       }
-
-      // Rate limiting - wait 300ms between embedding requests
-      await new Promise(resolve => setTimeout(resolve, 300));
-
     } catch (err) {
-      console.log(`  Import failed: ${err.message}`);
-      errors.push({ session: title, error: err.message });
+      console.log(`  Failed to import "${title.substring(0, 40)}...": ${err.message}`);
     }
   }
 
-  // Create vector index after importing data
-  console.log('\nCreating vector similarity index...');
+  console.log(`\nTotal sessions imported: ${sessionsToEmbed.length}`);
+
+  // Second pass: Generate embeddings in batches
+  console.log('\n--- Phase 2: Generating embeddings in batches ---');
+  let embeddedCount = 0;
+  let errorCount = 0;
+  const totalBatches = Math.ceil(sessionsToEmbed.length / BATCH_SIZE);
+
+  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
+    const start = batchIndex * BATCH_SIZE;
+    const end = Math.min(start + BATCH_SIZE, sessionsToEmbed.length);
+    const batch = sessionsToEmbed.slice(start, end);
+
+    console.log(`\nBatch ${batchIndex + 1}/${totalBatches} (sessions ${start + 1}-${end})`);
+
+    try {
+      const texts = batch.map(s => s.searchableText);
+      const embeddings = await generateEmbeddingsBatch(texts);
+
+      // Insert all embeddings from this batch
+      for (let i = 0; i < batch.length; i++) {
+        const session = batch[i];
+        const embedding = embeddings[i];
+
+        if (embedding && Array.isArray(embedding)) {
+          await pool.query(`
+            INSERT INTO session_embeddings (session_id, embedding, searchable_text)
+            VALUES ($1, $2::vector, $3)
+          `, [session.id, `[${embedding.join(',')}]`, session.searchableText]);
+          embeddedCount++;
+        } else {
+          console.log(`  Warning: No embedding for "${session.title.substring(0, 30)}..."`);
+          errorCount++;
+        }
+      }
+
+      console.log(`  ✓ Embedded ${batch.length} sessions`);
+
+      // Small delay between batches to avoid overwhelming the API
+      if (batchIndex < totalBatches - 1) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+
+    } catch (err) {
+      console.log(`  ✗ Batch failed: ${err.message}`);
+      errorCount += batch.length;
+    }
+  }
+
+  // Create vector index
+  console.log('\n--- Phase 3: Creating vector index ---');
   try {
-    await pool.query(`
-      DROP INDEX IF EXISTS session_embeddings_embedding_idx;
-      CREATE INDEX session_embeddings_embedding_idx ON session_embeddings
-      USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
-    `);
-    console.log('Vector index created');
+    await pool.query('DROP INDEX IF EXISTS session_embeddings_embedding_idx');
+
+    // Only create IVFFlat index if we have enough rows
+    if (embeddedCount >= 100) {
+      await pool.query(`
+        CREATE INDEX session_embeddings_embedding_idx ON session_embeddings
+        USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)
+      `);
+      console.log('IVFFlat vector index created');
+    } else {
+      // Use simpler HNSW index for smaller datasets
+      await pool.query(`
+        CREATE INDEX session_embeddings_embedding_idx ON session_embeddings
+        USING hnsw (embedding vector_cosine_ops)
+      `);
+      console.log('HNSW vector index created (suitable for smaller datasets)');
+    }
   } catch (err) {
     console.log(`Warning: Could not create vector index: ${err.message}`);
-    console.log('This is normal if you have fewer than 100 rows. Index will be created later.');
   }
 
-  console.log(`\n\n========== Import Complete ==========`);
-  console.log(`Sessions imported: ${importedCount}`);
+  console.log(`\n========== Import Complete ==========`);
+  console.log(`Sessions imported: ${sessionsToEmbed.length}`);
   console.log(`Embeddings generated: ${embeddedCount}`);
-  console.log(`Errors: ${errors.length}`);
-
-  if (errors.length > 0) {
-    console.log('\nErrors:');
-    errors.forEach(e => console.log(`  - ${e.session}: ${e.error}`));
-  }
+  console.log(`Errors: ${errorCount}`);
+  console.log(`API calls made: ${totalBatches} (batched)`);
 
   await pool.end();
 }

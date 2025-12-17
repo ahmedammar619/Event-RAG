@@ -9,12 +9,12 @@ export async function generateEmbedding(text) {
     throw new Error('Text is required for embedding generation');
   }
 
-  const response = await fetch(`${EMBEDDING_URL}/api/embeddings`, {
+  const response = await fetch(`${EMBEDDING_URL}/api/embed`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      model: 'nomic-embed-text',
-      prompt: text.trim()
+      model: 'nomic-embed-text-v2-moe',
+      input: text.trim()
     })
   });
 
@@ -25,11 +25,14 @@ export async function generateEmbedding(text) {
 
   const data = await response.json();
 
-  if (!data.embedding || !Array.isArray(data.embedding)) {
+  // Ollama returns embeddings in data.embeddings array (first element)
+  const embedding = data.embeddings?.[0] || data.embedding;
+
+  if (!embedding || !Array.isArray(embedding)) {
     throw new Error('Invalid embedding response: missing embedding array');
   }
 
-  return data.embedding;
+  return embedding;
 }
 
 export async function testEmbeddingService() {
