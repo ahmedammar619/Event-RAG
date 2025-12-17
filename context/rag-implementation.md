@@ -101,9 +101,10 @@ CREATE TABLE sessions (
   time_end TIME NOT NULL,
   track VARCHAR(255),
   title VARCHAR(500) NOT NULL,
+  title_english VARCHAR(500),           -- v2: Translated title
   room VARCHAR(255),
-  description_original TEXT,      -- Original (may contain Arabic)
-  description_english TEXT,       -- Translated to English
+  description_original TEXT,            -- Original (may contain Arabic)
+  description_english TEXT,             -- Translated to English
   speakers TEXT,
   session_type VARCHAR(50),
   tags TEXT,
@@ -115,7 +116,7 @@ CREATE TABLE session_embeddings (
   id SERIAL PRIMARY KEY,
   session_id INTEGER REFERENCES sessions(id) ON DELETE CASCADE,
   embedding vector(768),
-  searchable_text TEXT,           -- The text that was embedded
+  searchable_text TEXT,                 -- The text that was embedded
   created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -146,42 +147,36 @@ CREATE TABLE ai_settings (
 -- Default settings
 INSERT INTO ai_settings (key, value) VALUES
   ('search_mode', 'direct'),
-  ('default_result_count', '5');
+  ('default_result_count', '5'),
+  ('llm_model', 'gemma3:270m'),
+  ('reasoning_mode', 'full');
 ```
 
 ---
 
 ## Environment Variables
 
-### Local Development (.env file)
-```env
-> **Environment variables (example only — do NOT commit real credentials)**
->
-> Configure these in your local `.env` / deployment secrets:
->
-> - `DATABASE_URL=postgres://USER:PASS@HOST:PORT/DBNAME`
-> - `RAG_DATABASE_URL=postgres://RAG_USER:RAG_PASS@RAG_HOST:RAG_PORT/RAG_DBNAME`
-> - `OLLAMA_URL=https://your-ollama-endpoint.example.com`
-> - `OLLAMA_4B_URL=https://your-ollama-4b-endpoint.example.com`
-> - `EMBEDDING_URL=https://your-embedding-endpoint.example.com`
+> **IMPORTANT: Never commit real credentials to version control**
 
+### Required Variables
+Configure these in your local `.env` file or deployment secrets:
 
-# Translation API (optional - falls back to Ollama)
-LIBRETRANSLATE_URL=
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `DATABASE_URL` | Main PostgreSQL connection | `postgres://user:pass@host:port/dbname` |
+| `RAG_DATABASE_URL` | pgvector PostgreSQL connection | `postgres://user:pass@host:port/ragdb` |
+| `OLLAMA_URL` | Ollama LLM service endpoint | `https://your-ollama.example.com` |
+| `OLLAMA_4B_URL` | Ollama 4B model endpoint (optional) | `https://your-ollama-4b.example.com` |
+| `EMBEDDING_URL` | nomic-embed-text service | `https://your-embedding.example.com` |
+| `JWT_SECRET` | JWT signing secret | `your-random-secret-key` |
+| `NODE_ENV` | Environment mode | `development` or `production` |
+| `PORT` | Backend port | `3001` |
 
-# JWT Secret
-JWT_SECRET=your-secret-key
-```
-
-### Railway Deployment Variables
-Add these in Railway Dashboard → Service → Variables:
-- `DATABASE_URL` - Main PostgreSQL connection
-- `RAG_DATABASE_URL` - pgvector PostgreSQL connection
-- `EMBEDDING_URL` - nomic-embed-text service URL
-- `OLLAMA_URL` - Ollama LLM service URL
-- `JWT_SECRET` - JWT signing secret
-- `NODE_ENV` - production
-- `PORT` - 3001 (Railway sets dynamically)
+### Optional Variables
+| Variable | Description |
+|----------|-------------|
+| `LIBRETRANSLATE_URL` | Translation API (falls back to Ollama) |
+| `CORS_ORIGIN` | Frontend URL for CORS |
 
 ---
 
@@ -191,8 +186,11 @@ Add these in Railway Dashboard → Service → Variables:
 apps/backend/
 ├── scripts/
 │   ├── migrate-rag.js              # Creates RAG database tables
+│   ├── migrate-rag-v2.js           # v2 schema updates
 │   ├── translate-sessions.js       # Translates Arabic descriptions
-│   └── import-sessions-rag.js      # Imports CSV + generates embeddings (batched)
+│   ├── translate-titles.js         # v2: Translates Arabic titles
+│   ├── import-sessions-rag.js      # Imports CSV + generates embeddings
+│   └── regenerate-embeddings.js    # v2: Regenerate with translations
 ├── src/
 │   ├── plugins/
 │   │   ├── db.js                   # Main database connection
@@ -239,7 +237,7 @@ apps/frontend/
 ## Backend Services
 
 ### 1. embeddingService.js
-Generates 768-dimensional vector embeddings using Ollama's nomic-embed-text-v2-moe model.
+Generates 768-dimensional vector embeddings using nomic-embed-text-v2-moe model.
 
 ```javascript
 // Single embedding
@@ -289,16 +287,17 @@ Core search logic with dual-mode support.
 const results = await searchSessions(ragDb, "I'm a convert", { limit: 15 });
 
 // Generate LLM reasoning for selected sessions
-const withReasoning = await generateReasoning(query, sessions);
+const withReasoning = await generateReasoning(ragDb, query, sessions);
 ```
 
 ### 5. aiSettingsService.js
 CRUD for admin-configurable settings.
 
 ```javascript
-const mode = await getSearchMode(ragDb);        // 'direct' or 'smart'
-await setSearchMode(ragDb, 'smart');
-const count = await getDefaultResultCount(ragDb); // 5, 10, 15, or 20
+const mode = await getSearchMode(ragDb);           // 'direct' or 'smart'
+const llmModel = await getLlmModel(ragDb);         // 'gemma3:270m' or 'gemma3-4b'
+const reasoningMode = await getReasoningMode(ragDb); // 'full' or 'embedding_only'
+const count = await getDefaultResultCount(ragDb);  // 5, 10, 15, or 20
 ```
 
 ---
@@ -313,24 +312,6 @@ const count = await getDefaultResultCount(ragDb); // 5, 10, 15, or 20
 | POST | `/api/visitors/login` | Email-based login | None |
 | GET | `/api/visitors/me` | Get current visitor | JWT |
 
-**Register Request:**
-```json
-{ "name": "John Doe", "email": "john@example.com" }
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "id": 1,
-    "name": "John Doe",
-    "email": "john@example.com",
-    "token": "eyJhbG..."
-  }
-}
-```
-
 ### AI Search (Two-Step Flow)
 
 | Method | Endpoint | Description | Auth |
@@ -341,68 +322,6 @@ const count = await getDefaultResultCount(ragDb); // 5, 10, 15, or 20
 | GET | `/api/ai/sessions/:id` | Get single session | None |
 | GET | `/api/ai/health` | Service health check | None |
 
-**Search Request (Step 1):**
-```json
-{ "query": "I'm a convert, what sessions are best for me?" }
-```
-
-**Search Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "query_original": "I'm a convert...",
-    "query_english": "I'm a convert...",
-    "language_detected": "english",
-    "mode": "direct",
-    "total_matches": 15,
-    "results": [
-      {
-        "session": {
-          "id": 42,
-          "title": "New Muslim Journey",
-          "date": "2025-12-26",
-          "time_start": "10:00:00",
-          "time_end": "11:30:00",
-          "track": "Convert Track",
-          "room": "Hall A",
-          "speakers": "Imam Suhaib Webb",
-          "description_preview": "A session designed for..."
-        },
-        "relevance_score": 0.89
-      }
-      // ... more results
-    ]
-  }
-}
-```
-
-**Reasoning Request (Step 2):**
-```json
-{
-  "query": "I'm a convert...",
-  "session_ids": [42, 15, 78, 23, 91]
-}
-```
-
-**Reasoning Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "query": "I'm a convert...",
-    "recommendations": [
-      {
-        "session": { /* full session data */ },
-        "reasoning": "This session is perfect for you because it addresses the unique challenges new Muslims face...",
-        "relevance_score": 0.89
-      }
-      // ... more with reasoning
-    ]
-  }
-}
-```
-
 ### Admin AI Settings
 
 | Method | Endpoint | Description | Auth |
@@ -410,11 +329,9 @@ const count = await getDefaultResultCount(ragDb); // 5, 10, 15, or 20
 | GET | `/api/ai/settings` | Get all AI settings | Admin JWT |
 | PUT | `/api/ai/settings/search-mode` | Toggle search mode | Admin JWT |
 | PUT | `/api/ai/settings/result-count` | Set default result count | Admin JWT |
-
-**Set Search Mode:**
-```json
-{ "mode": "smart" }  // or "direct"
-```
+| PUT | `/api/ai/settings/llm-model` | Set LLM model | Admin JWT |
+| PUT | `/api/ai/settings/reasoning-mode` | Set reasoning mode | Admin JWT |
+| GET | `/api/ai/analytics` | Get search analytics | Admin JWT |
 
 ---
 
@@ -430,9 +347,10 @@ const { visitor, isAuthenticated, loading, login, register, logout } = useVisito
 ### Explore.jsx (Main AI Interface)
 - Search input with example query chips
 - Displays search results count
-- ResultCountSelector for Top 5/10/All
+- ResultCountSelector for Top 5/10/All (when reasoning_mode is 'full')
 - SessionCard list with AI reasoning
 - Loading states for search and reasoning
+- Embedding-only mode shows results directly
 
 ### SessionCard.jsx
 Displays session with:
@@ -440,7 +358,7 @@ Displays session with:
 - Title and track
 - Date, time, room, speakers
 - Relevance score percentage bar
-- AI reasoning (purple box when available)
+- "AI Take" section (purple gradient when reasoning available)
 
 ### ResultCountSelector.jsx
 Buttons for selecting how many results to analyze:
@@ -449,10 +367,12 @@ Buttons for selecting how many results to analyze:
 - All Results - List icon
 
 ### AISettings.jsx (Admin Page)
-- Service health status (embedding, language, parser)
-- Search mode toggle (Direct vs Smart)
-- Default result count buttons (5, 10, 15, 20)
-- Cost optimization info box
+Table format with:
+- Search Mode dropdown (Direct/Smart)
+- Reasoning Mode dropdown (Full/Embedding Only)
+- LLM Model dropdown (gemma3:270m/gemma3-4b)
+- Default Result Count buttons
+- Cost optimization tips
 
 ---
 
@@ -462,30 +382,36 @@ Buttons for selecting how many results to analyze:
 Creates all RAG database tables and indexes.
 
 ```bash
-npm run migrate:rag
+docker compose -f docker-compose.dev.yml exec backend node scripts/migrate-rag.js
 ```
 
-### translate-sessions.js
-Translates Arabic text in session descriptions to English.
+### migrate-rag-v2.js
+Adds v2 schema changes (title_english, new settings, analytics).
 
 ```bash
-npm run translate-sessions
+docker compose -f docker-compose.dev.yml exec backend node scripts/migrate-rag-v2.js
 ```
 
-Input: `agenda_cleaned.csv`
-Output: `agenda_translated.csv`
+### translate-titles.js
+Translates Arabic titles to English.
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend node scripts/translate-titles.js
+```
 
 ### import-sessions-rag.js
 Imports sessions and generates embeddings in batches.
 
 ```bash
-npm run import-sessions:rag
+docker compose -f docker-compose.dev.yml exec backend node scripts/import-sessions-rag.js
 ```
 
-**Features:**
-- Batched embedding generation (20 sessions per API call)
-- Only 12 API calls for 234 sessions (vs 234 individual calls)
-- Creates appropriate vector index (IVFFlat or HNSW)
+### regenerate-embeddings.js
+Regenerates all embeddings with translated titles.
+
+```bash
+docker compose -f docker-compose.dev.yml exec backend node scripts/regenerate-embeddings.js
+```
 
 ---
 
@@ -518,13 +444,14 @@ services:
 
 ---
 
-## Railway Services
+## External Services
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| nomic-embed-text | https://nomic-embed-text-production.up.railway.app | Vector embeddings (768 dim) |
-| gemma3:270m | https://ollama-production-2290.up.railway.app | LLM for reasoning + translation |
-| gemma3-4b | https://gemma3-4b-production.up.railway.app | Higher quality LLM (optional) |
+| Service | Purpose |
+|---------|---------|
+| nomic-embed-text | Vector embeddings (768 dimensions) |
+| gemma3:270m | Fast LLM for reasoning + translation |
+| gemma3-4b | Higher quality LLM (optional) |
+| LibreTranslate | Arabic → English translation (optional) |
 
 **Model Details:**
 - Embedding: `nomic-embed-text-v2-moe` (768 dimensions, ~475M params)
@@ -551,7 +478,7 @@ services:
 3. Enters email (or registers) → redirected to `/explore`
 4. Types question like "sessions about spirituality"
 5. Sees "Found 15 relevant sessions!"
-6. Selects "Top 5" to analyze
+6. Selects "Top 5" to analyze (if reasoning_mode is 'full')
 7. AI generates personalized reasoning for top 5 sessions
 8. User views SessionCards with explanations
 
@@ -559,21 +486,24 @@ services:
 1. Admin logs in → Dashboard
 2. Clicks "AI Settings" in sidebar
 3. Views service health status
-4. Toggles between Direct/Smart search mode
+4. Configures search mode, LLM model, reasoning mode
 5. Adjusts default result count
 
 ---
 
 ## Cost Optimization
 
-The two-step flow reduces LLM costs significantly:
-
+### Two-Step Flow Savings
 | Approach | LLM Calls per Search |
 |----------|---------------------|
 | Traditional (analyze all) | 15-20 calls |
 | Two-step (user selects 5) | 1 batch call |
 
 **Savings**: ~75-80% reduction in LLM API costs
+
+### Embedding-Only Mode
+- **Full mode**: AI generates personalized reasoning
+- **Embedding-only**: Pure vector similarity, zero LLM costs
 
 ---
 
@@ -597,43 +527,53 @@ The two-step flow reduces LLM costs significantly:
 ### Arabic queries not translated
 - LibreTranslate not configured → falls back to Ollama
 - Check `OLLAMA_URL` is set and service is running
-- Test: `curl {OLLAMA_URL}/api/tags`
 
 ---
 
-## Summary of Created Files
+## Version History
 
-### Backend (13 files)
-1. `src/plugins/ragDb.js` - RAG database connection
-2. `src/services/embeddingService.js` - Vector embedding generation
-3. `src/services/languageService.js` - Language detection + translation
-4. `src/services/queryParserService.js` - LLM query parsing
-5. `src/services/ragService.js` - Core dual-mode search
-6. `src/services/aiSettingsService.js` - Admin settings
-7. `src/routes/visitors.js` - Visitor auth routes
-8. `src/routes/ai.js` - AI search routes
-9. `scripts/migrate-rag.js` - Database migration
-10. `scripts/translate-sessions.js` - Arabic translation
-11. `scripts/import-sessions-rag.js` - Batched import + embedding
+### v1.0 - Initial Implementation
+- Dual-mode search (Direct/Smart)
+- Two-step query flow
+- Visitor authentication
+- Session embeddings with pgvector
 
-### Frontend (8 files)
-1. `src/context/VisitorContext.jsx` - Visitor auth state
-2. `src/pages/Visitor/Login.jsx` - Login page
-3. `src/pages/Visitor/Register.jsx` - Registration page
-4. `src/pages/Visitor/Explore.jsx` - AI chat interface
-5. `src/pages/Admin/AISettings.jsx` - Admin settings page
-6. `src/components/explore/SessionCard.jsx` - Session display
-7. `src/components/explore/ResultCountSelector.jsx` - Result count picker
+### v2.0 - Enhanced Features
+- LLM model selection (gemma3:270m/gemma3-4b)
+- Embedding-only reasoning mode
+- Title translation (Arabic → English)
+- Enhanced analytics table
+- "AI Take" UI branding
 
-### Modified Files
-1. `src/routes/index.js` - Added visitor + AI routes
-2. `src/app.js` - Added ragDb plugin
-3. `src/services/api.js` - Added visitor + AI services
-4. `src/App.jsx` - Added visitor routes + VisitorProtectedRoute
-5. `src/main.jsx` - Added VisitorProvider
-6. `src/pages/Public/Landing.jsx` - Added visitor section
-7. `src/components/layout/AdminLayout.jsx` - Added AI Settings nav
-8. `.env` - Added RAG environment variables
-9. `docker-compose.dev.yml` - Added env_file directive
-10. `docker-compose.yml` - Added env_file directive
-11. `package.json` - Added scripts + franc-min dependency
+---
+
+## Summary of Files
+
+### Backend Scripts
+| File | Purpose |
+|------|---------|
+| `migrate-rag.js` | Database migration v1 |
+| `migrate-rag-v2.js` | Database migration v2 |
+| `translate-sessions.js` | Translate descriptions |
+| `translate-titles.js` | Translate titles |
+| `import-sessions-rag.js` | Import + embed sessions |
+| `regenerate-embeddings.js` | Regenerate embeddings |
+
+### Backend Services
+| File | Purpose |
+|------|---------|
+| `ragDb.js` | RAG database connection |
+| `embeddingService.js` | Vector embedding generation |
+| `languageService.js` | Language detection + translation |
+| `queryParserService.js` | LLM query parsing |
+| `ragService.js` | Core dual-mode search |
+| `aiSettingsService.js` | Admin settings CRUD |
+
+### Frontend Components
+| File | Purpose |
+|------|---------|
+| `VisitorContext.jsx` | Visitor auth state |
+| `Explore.jsx` | AI chat interface |
+| `AISettings.jsx` | Admin settings page |
+| `SessionCard.jsx` | Session display |
+| `ResultCountSelector.jsx` | Result count picker |

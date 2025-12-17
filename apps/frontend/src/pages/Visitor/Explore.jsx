@@ -27,6 +27,20 @@ export default function Explore() {
   const [generatingReasoning, setGeneratingReasoning] = useState(false)
   const [selectedCount, setSelectedCount] = useState(null)
   const [recommendations, setRecommendations] = useState(null)
+  const [reasoningMode, setReasoningMode] = useState('full') // 'full' or 'embedding_only'
+
+  // Fetch reasoning mode on mount
+  useEffect(() => {
+    const fetchHealth = async () => {
+      try {
+        const response = await aiService.getHealth()
+        // The health endpoint doesn't include reasoning mode, so we'll detect it from search results
+      } catch (err) {
+        // Ignore - will use default 'full' mode
+      }
+    }
+    fetchHealth()
+  }, [])
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -45,7 +59,23 @@ export default function Explore() {
 
     try {
       const response = await aiService.search(query.trim())
-      setSearchResults(response.data.data)
+      const results = response.data.data
+      setSearchResults(results)
+
+      // Check if we're in embedding_only mode (detected from response or settings)
+      // In embedding_only mode, skip the count selection and show results directly
+      if (results.reasoning_mode === 'embedding_only' || reasoningMode === 'embedding_only') {
+        setReasoningMode('embedding_only')
+        // Show top results directly without AI reasoning
+        const defaultCount = Math.min(5, results.total_matches)
+        const directResults = results.results.slice(0, defaultCount).map(r => ({
+          session: r.session,
+          relevance_score: r.relevance_score,
+          reasoning: null // No AI reasoning in embedding_only mode
+        }))
+        setSelectedCount(defaultCount)
+        setRecommendations(directResults)
+      }
     } catch (err) {
       toast.error('Search failed. Please try again.')
     } finally {
@@ -202,9 +232,16 @@ export default function Explore() {
         {recommendations && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-slate-800">
-                Your Personalized Recommendations
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-slate-800">
+                  {reasoningMode === 'embedding_only' ? 'Top Matching Sessions' : 'Your Personalized Recommendations'}
+                </h2>
+                {reasoningMode === 'embedding_only' && (
+                  <p className="text-sm text-slate-500 mt-1">
+                    Ranked by relevance to your search
+                  </p>
+                )}
+              </div>
               <button
                 onClick={handleReset}
                 className="text-purple-600 hover:underline text-sm"
@@ -222,6 +259,27 @@ export default function Explore() {
                 rank={idx + 1}
               />
             ))}
+
+            {/* Show more results option in embedding_only mode */}
+            {reasoningMode === 'embedding_only' && searchResults && recommendations.length < searchResults.total_matches && (
+              <div className="text-center">
+                <button
+                  onClick={() => {
+                    const moreCount = Math.min(recommendations.length + 5, searchResults.total_matches)
+                    const moreResults = searchResults.results.slice(0, moreCount).map(r => ({
+                      session: r.session,
+                      relevance_score: r.relevance_score,
+                      reasoning: null
+                    }))
+                    setRecommendations(moreResults)
+                    setSelectedCount(moreCount)
+                  }}
+                  className="px-6 py-2 border border-purple-300 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+                >
+                  Show More Sessions ({searchResults.total_matches - recommendations.length} remaining)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

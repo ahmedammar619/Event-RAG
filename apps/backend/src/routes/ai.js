@@ -45,6 +45,9 @@ export default async function aiRoutes(fastify, options) {
     // Get default result count from settings
     const limit = await getDefaultResultCount(ragDb);
 
+    // Get reasoning mode to include in response
+    const reasoningMode = await getReasoningMode(ragDb);
+
     // Perform search (mode is determined by settings)
     const results = await searchSessions(ragDb, query.trim(), { limit: limit * 3 }); // Get more than needed for selection
 
@@ -63,7 +66,11 @@ export default async function aiRoutes(fastify, options) {
       fastify.log.error('Failed to log query:', err.message);
     }
 
-    return success(results);
+    // Include reasoning_mode so frontend knows whether to show count selector
+    return success({
+      ...results,
+      reasoning_mode: reasoningMode
+    });
   });
 
   // ==========================================
