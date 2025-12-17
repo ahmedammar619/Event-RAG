@@ -193,24 +193,24 @@ export default function AISettings() {
   const currentPipeline = getCurrentPipeline()
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 md:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-800">AI Settings</h1>
-        <p className="text-slate-500 mt-1">Configure how the AI session finder works</p>
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800">AI Settings</h1>
+        <p className="text-sm md:text-base text-slate-500 mt-1">Configure how the AI session finder works</p>
       </div>
 
-      {/* Health Status - Compact */}
-      <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-xl">
+      {/* Health Status - Responsive */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 p-3 md:p-4 bg-slate-50 rounded-xl">
         <div className="flex items-center gap-2">
-          <div className={`w-3 h-3 rounded-full ${health?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-          <span className="font-medium text-slate-700">System Status:</span>
-          <span className={health?.status === 'ok' ? 'text-green-600' : 'text-red-600'}>
+          <div className={`w-3 h-3 rounded-full flex-shrink-0 ${health?.status === 'ok' ? 'bg-green-500' : 'bg-red-500'}`}></div>
+          <span className="font-medium text-slate-700 text-sm md:text-base">System Status:</span>
+          <span className={`text-sm md:text-base ${health?.status === 'ok' ? 'text-green-600' : 'text-red-600'}`}>
             {health?.status === 'ok' ? 'All services operational' : 'Issues detected'}
           </span>
         </div>
         {health?.services?.embedding && (
-          <span className="text-sm text-slate-500">
+          <span className="text-xs md:text-sm text-slate-500 ml-5 sm:ml-0">
             Embeddings: {health.services.embedding.dimensions}d
           </span>
         )}
@@ -218,12 +218,12 @@ export default function AISettings() {
 
       {/* Search Pipeline Selection */}
       <div className="card">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-800">Search Pipeline</h2>
-          <p className="text-sm text-slate-500 mt-1">Choose how visitors search for sessions</p>
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-base md:text-lg font-semibold text-slate-800">Search Pipeline</h2>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">Choose how visitors search for sessions</p>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-3 md:gap-4 grid-cols-1 md:grid-cols-3">
           {SEARCH_PIPELINES.map((pipeline) => {
             const isSelected = currentPipeline.id === pipeline.id
             const colors = getColorClasses(pipeline.color, isSelected)
@@ -233,7 +233,7 @@ export default function AISettings() {
                 key={pipeline.id}
                 onClick={() => handlePipelineChange(pipeline)}
                 disabled={saving}
-                className={`relative p-6 rounded-xl border-2 text-left transition-all ${
+                className={`relative p-4 md:p-6 rounded-xl border-2 text-left transition-all ${
                   isSelected
                     ? colors.selected
                     : `border-slate-200 ${colors.hover}`
@@ -241,39 +241,44 @@ export default function AISettings() {
               >
                 {/* Selected Badge */}
                 {isSelected && (
-                  <div className="absolute top-3 right-3">
-                    <svg className={`w-6 h-6 ${colors.text}`} fill="currentColor" viewBox="0 0 20 20">
+                  <div className="absolute top-2 right-2 md:top-3 md:right-3">
+                    <svg className={`w-5 h-5 md:w-6 md:h-6 ${colors.text}`} fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                     </svg>
                   </div>
                 )}
 
-                {/* Icon */}
-                <div className={`mb-4 ${colors.text}`}>
-                  {pipeline.icon}
+                {/* Mobile: Horizontal layout, Desktop: Vertical */}
+                <div className="flex items-start gap-3 md:block">
+                  {/* Icon */}
+                  <div className={`flex-shrink-0 md:mb-4 ${colors.text}`}>
+                    {pipeline.icon}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    {/* Title & Subtitle */}
+                    <h3 className="text-base md:text-lg font-semibold text-slate-800">{pipeline.name}</h3>
+                    <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${colors.badge}`}>
+                      {pipeline.subtitle}
+                    </span>
+
+                    {/* Description */}
+                    <p className="mt-2 md:mt-3 text-xs md:text-sm text-slate-600">{pipeline.description}</p>
+                  </div>
                 </div>
 
-                {/* Title & Subtitle */}
-                <h3 className="text-lg font-semibold text-slate-800">{pipeline.name}</h3>
-                <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${colors.badge}`}>
-                  {pipeline.subtitle}
-                </span>
-
-                {/* Description */}
-                <p className="mt-3 text-sm text-slate-600">{pipeline.description}</p>
-
-                {/* Flow Diagram */}
-                <div className="mt-4 flex items-center gap-1 text-xs text-slate-400">
+                {/* Flow Diagram - Hidden on mobile, shown on tablet+ */}
+                <div className="hidden sm:flex mt-4 items-center gap-1 text-xs text-slate-400 flex-wrap">
                   {pipeline.flow.map((step, i) => (
                     <span key={i} className="flex items-center gap-1">
-                      <span className="px-2 py-1 bg-slate-100 rounded">{step}</span>
+                      <span className="px-2 py-1 bg-slate-100 rounded whitespace-nowrap">{step}</span>
                       {i < pipeline.flow.length - 1 && <span>→</span>}
                     </span>
                   ))}
                 </div>
 
                 {/* Stats */}
-                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
+                <div className="mt-3 md:mt-4 pt-3 md:pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-500">Speed: <span className="font-medium text-slate-700">{pipeline.speed}</span></span>
                   <span className="text-slate-500">Cost: <span className="font-medium text-slate-700">{pipeline.cost}</span></span>
                 </div>
@@ -286,29 +291,29 @@ export default function AISettings() {
       {/* LLM Model Selection - Only show if AI is enabled */}
       {settings.reasoning_mode === 'full' && (
         <div className="card">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-slate-800">AI Model</h2>
-            <p className="text-sm text-slate-500 mt-1">Choose the LLM model for reasoning</p>
+          <div className="mb-4 md:mb-6">
+            <h2 className="text-base md:text-lg font-semibold text-slate-800">AI Model</h2>
+            <p className="text-xs md:text-sm text-slate-500 mt-1">Choose the LLM model for reasoning</p>
           </div>
 
-          <div className="flex gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
             {LLM_MODELS.map((model) => (
               <button
                 key={model.id}
                 onClick={() => handleModelChange(model.id)}
                 disabled={saving}
-                className={`flex-1 p-4 rounded-xl border-2 text-left transition-all ${
+                className={`p-3 md:p-4 rounded-xl border-2 text-left transition-all ${
                   settings.llm_model === model.id
                     ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-500'
                     : 'border-slate-200 hover:border-purple-300'
                 } ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-slate-800">{model.name}</h3>
-                    <p className="text-sm text-slate-500">{model.description}</p>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-slate-800 text-sm md:text-base">{model.name}</h3>
+                    <p className="text-xs md:text-sm text-slate-500">{model.description}</p>
                   </div>
-                  <span className="text-xs text-slate-400">{model.speed}</span>
+                  <span className="text-xs text-slate-400 flex-shrink-0">{model.speed}</span>
                 </div>
               </button>
             ))}
@@ -318,18 +323,18 @@ export default function AISettings() {
 
       {/* Default Results Count */}
       <div className="card">
-        <div className="mb-6">
-          <h2 className="text-lg font-semibold text-slate-800">Default Results</h2>
-          <p className="text-sm text-slate-500 mt-1">Number of sessions to show initially</p>
+        <div className="mb-4 md:mb-6">
+          <h2 className="text-base md:text-lg font-semibold text-slate-800">Default Results</h2>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">Number of sessions to show initially</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="grid grid-cols-4 gap-2 md:flex md:gap-3">
           {[5, 10, 15, 20].map(count => (
             <button
               key={count}
               onClick={() => handleResultCountChange(count)}
               disabled={saving}
-              className={`px-6 py-3 rounded-xl font-medium text-lg transition-all ${
+              className={`px-3 md:px-6 py-2 md:py-3 rounded-xl font-medium text-base md:text-lg transition-all ${
                 parseInt(settings.default_result_count) === count
                   ? 'bg-slate-800 text-white shadow-lg'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
@@ -344,46 +349,46 @@ export default function AISettings() {
       {/* Analytics Summary */}
       {analytics?.totals && (
         <div className="card">
-          <div className="mb-6">
-            <h2 className="text-lg font-semibold text-slate-800">Last 7 Days</h2>
-            <p className="text-sm text-slate-500 mt-1">Search analytics overview</p>
+          <div className="mb-4 md:mb-6">
+            <h2 className="text-base md:text-lg font-semibold text-slate-800">Last 7 Days</h2>
+            <p className="text-xs md:text-sm text-slate-500 mt-1">Search analytics overview</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="p-4 bg-slate-50 rounded-xl">
-              <p className="text-2xl font-bold text-slate-800">{analytics.totals.total_searches || 0}</p>
-              <p className="text-sm text-slate-500">Total Searches</p>
+          <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
+            <div className="p-3 md:p-4 bg-slate-50 rounded-xl">
+              <p className="text-xl md:text-2xl font-bold text-slate-800">{analytics.totals.total_searches || 0}</p>
+              <p className="text-xs md:text-sm text-slate-500">Total Searches</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl">
-              <p className="text-2xl font-bold text-slate-800">{analytics.totals.unique_visitors || 0}</p>
-              <p className="text-sm text-slate-500">Unique Visitors</p>
+            <div className="p-3 md:p-4 bg-slate-50 rounded-xl">
+              <p className="text-xl md:text-2xl font-bold text-slate-800">{analytics.totals.unique_ips || 0}</p>
+              <p className="text-xs md:text-sm text-slate-500">Unique Visitors</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl">
-              <p className="text-2xl font-bold text-slate-800">{analytics.totals.avg_search_ms || 0}ms</p>
-              <p className="text-sm text-slate-500">Avg Search Time</p>
+            <div className="p-3 md:p-4 bg-slate-50 rounded-xl">
+              <p className="text-xl md:text-2xl font-bold text-slate-800">{analytics.totals.arabic_queries || 0}</p>
+              <p className="text-xs md:text-sm text-slate-500">Arabic Queries</p>
             </div>
-            <div className="p-4 bg-slate-50 rounded-xl">
-              <p className="text-2xl font-bold text-slate-800">{analytics.totals.total_reasoning_requests || 0}</p>
-              <p className="text-sm text-slate-500">AI Reasoning Requests</p>
+            <div className="p-3 md:p-4 bg-slate-50 rounded-xl">
+              <p className="text-xl md:text-2xl font-bold text-slate-800">{analytics.totals.mobile_queries || 0}</p>
+              <p className="text-xs md:text-sm text-slate-500">Mobile Searches</p>
             </div>
           </div>
         </div>
       )}
 
       {/* Info Box */}
-      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-5">
-        <div className="flex gap-4">
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 md:p-5">
+        <div className="flex gap-3 md:gap-4">
           <div className="flex-shrink-0">
-            <svg className="w-6 h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 md:w-6 md:h-6 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div>
-            <h3 className="font-semibold text-blue-900 mb-2">Understanding the Pipelines</h3>
-            <ul className="text-sm text-blue-800 space-y-2">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-blue-900 mb-2 text-sm md:text-base">Understanding the Pipelines</h3>
+            <ul className="text-xs md:text-sm text-blue-800 space-y-1.5 md:space-y-2">
               <li><strong>Smart Search:</strong> Best for high traffic. Pure vector similarity with zero AI costs.</li>
               <li><strong>Search + AI:</strong> Balanced choice. Fast search, then AI explains each result.</li>
-              <li><strong>AI + Search + AI:</strong> Most accurate for complex queries like "morning sessions by Dr. Haifaa about family".</li>
+              <li><strong>AI + Search + AI:</strong> Most accurate for complex queries.</li>
             </ul>
           </div>
         </div>

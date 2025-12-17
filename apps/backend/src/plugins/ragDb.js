@@ -4,20 +4,49 @@ import fp from 'fastify-plugin';
 const { Pool } = pg;
 
 async function ragDbPlugin(fastify, options) {
-  const pool = new Pool({
-    connectionString: process.env.RAG_DATABASE_URL,
-    ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-  });
+  const connectionString = process.env.RAG_DATABASE_URL;
 
-  // Test connection
+  if (!connectionString) {
+    console.error('RAG_DATABASE_URL not set, RAG features will be disabled');
+    return;
+  }
+
+  // Try connecting - first without SSL, then with SSL if that fails
+  let pool;
+  let connected = false;
+
+  // First try without SSL (Railway internal doesn't need SSL)
   try {
+    pool = new Pool({
+      connectionString,
+      ssl: false
+    });
     const client = await pool.connect();
-    console.log('RAG Database connected successfully');
+    console.log('RAG Database connected successfully (no SSL)');
     client.release();
+    connected = true;
   } catch (err) {
-    console.error('RAG Database connection failed:', err.message);
-    // Don't throw - RAG is optional, main app should still work
-    console.error('RAG features will be disabled');
+    console.log('RAG Database connection without SSL failed, trying with SSL...');
+    await pool?.end();
+
+    // Try with SSL
+    try {
+      pool = new Pool({
+        connectionString,
+        ssl: { rejectUnauthorized: false }
+      });
+      const client = await pool.connect();
+      console.log('RAG Database connected successfully (with SSL)');
+      client.release();
+      connected = true;
+    } catch (sslErr) {
+      console.error('RAG Database connection failed:', sslErr.message);
+      console.error('RAG features will be disabled');
+      return;
+    }
+  }
+
+  if (!connected) {
     return;
   }
 
