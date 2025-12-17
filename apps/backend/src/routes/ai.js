@@ -279,8 +279,8 @@ export default async function aiRoutes(fastify, options) {
 
     const { model } = request.body;
 
-    if (!model || !['gemma3:270m', 'gemma3-4b'].includes(model)) {
-      throw validationError('Model must be "gemma3:270m" or "gemma3-4b"');
+    if (!model || !['grok-fast', 'grok-reasoning'].includes(model)) {
+      throw validationError('Model must be "grok-fast" or "grok-reasoning"');
     }
 
     await setLlmModel(ragDb, model);

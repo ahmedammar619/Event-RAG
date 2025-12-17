@@ -1,15 +1,14 @@
 /**
  * RAG Service - Core retrieval and reasoning logic
  * Supports dual-mode search: Direct (Mode B) and Smart (Mode A)
+ * Uses Grok API for LLM reasoning via llmService
  */
 
 import { generateEmbedding } from './embeddingService.js';
 import { detectLanguage, translateToEnglish } from './languageService.js';
 import { parseQuery, buildSQLFilters } from './queryParserService.js';
 import { getSearchMode, getDefaultResultCount, getLlmModel, getReasoningMode } from './aiSettingsService.js';
-
-const OLLAMA_URL = process.env.OLLAMA_URL || 'https://ollama-production-2290.up.railway.app';
-const OLLAMA_4B_URL = process.env.OLLAMA_4B_URL || 'https://gemma3-4b-production.up.railway.app';
+import { generateCompletion } from './llmService.js';
 
 /**
  * Main search function - routes to appropriate mode based on settings
@@ -142,46 +141,34 @@ export async function generateReasoning(ragDb, query, sessions) {
     }));
   }
 
-  // Get the configured LLM model
-  const llmModel = await getLlmModel(ragDb);
-  const ollamaUrl = llmModel === 'gemma3-4b' ? OLLAMA_4B_URL : OLLAMA_URL;
-  const modelName = llmModel === 'gemma3-4b' ? 'gemma3-4b' : 'gemma3:270m';
+  // Get the configured LLM model (grok-fast or grok-reasoning)
+  const grokModel = await getLlmModel(ragDb) || 'grok-fast';
 
   const sessionSummaries = sessions.map((s, i) => {
     const session = s.session || s;
     return `${i + 1}. "${session.title}" by ${session.speakers || 'Unknown'} - ${session.description_english?.substring(0, 200) || 'No description'}...`;
   }).join('\n\n');
 
-  const prompt = `You are helping a conference attendee find relevant sessions. The user asked: "${query}"
+  const systemPrompt = `You are a helpful assistant for a conference. Provide brief, specific recommendations for why each session might interest the attendee based on their query. Be concise - 1-2 sentences per session.`;
+
+  const userPrompt = `The attendee asked: "${query}"
 
 Here are the matching sessions:
 
 ${sessionSummaries}
 
-For each session, provide a brief 1-2 sentence explanation of why it might be relevant to the user's query. Be specific and helpful.
-
-Format your response as a numbered list matching the session numbers above:`;
+For each session, explain why it might be relevant. Format as a numbered list:`;
 
   try {
-    const response = await fetch(`${ollamaUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: modelName,
-        prompt,
-        stream: false
-      })
+    const response = await generateCompletion(userPrompt, {
+      model: grokModel,
+      systemPrompt,
+      maxTokens: 800,
+      temperature: 0.7
     });
 
-    if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const reasoning = data.response?.trim() || '';
-
     // Parse reasoning into array
-    const reasonings = parseReasoningResponse(reasoning, sessions.length);
+    const reasonings = parseReasoningResponse(response, sessions.length);
 
     return sessions.map((s, i) => ({
       ...s,

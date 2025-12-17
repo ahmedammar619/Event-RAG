@@ -3,81 +3,53 @@
  * Used by Mode A (Smart Hybrid Search)
  */
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'https://ollama-production-2290.up.railway.app';
+import { generateCompletion, extractJSON } from './llmService.js';
 
-const PARSE_PROMPT_TEMPLATE = `You are a query parser for a conference session finder. Extract structured information from the user's query.
+const PARSE_SYSTEM_PROMPT = `You are a query parser for a conference session finder. Extract structured information from user queries and return ONLY valid JSON.
 
-Available speakers at this conference include names like: Dr. Haifaa Younis, Yaser Birjas, Suhaib Webb, Zaynab Ansari, and others.
+Available speakers include: Dr. Haifaa Younis, Yaser Birjas, Suhaib Webb, Zaynab Ansari, Omar Suleiman, and others.
+Available tracks include: English Knowledge Retreat, Arabic Knowledge Retreat, Youth Track, Sisters Track, and similar.`;
 
-Available tracks include: English Knowledge Retreat, Arabic Knowledge Retreat, Youth Track, Sisters Track, and similar.
-
-Parse the following query and return ONLY a valid JSON object with these fields:
-- topic: The main subject/theme they're interested in (string or null)
+const PARSE_USER_PROMPT = `Parse this query and return ONLY a JSON object with these fields:
+- topic: The main subject/theme (string or null)
 - speakers: Array of speaker names mentioned (empty array if none)
 - track: The track/category if mentioned (string or null)
-- time_preference: One of "morning", "afternoon", "evening", or null
-  - morning = before 12:00 PM
-  - afternoon = 12:00 PM to 5:00 PM
-  - evening = after 5:00 PM
+- time_preference: One of "morning" (before 12pm), "afternoon" (12-5pm), "evening" (after 5pm), or null
 - language_preference: "arabic" or "english" or null
 
-User query: "{query}"
+Query: "{query}"
 
-Return only the JSON object, no explanation:`;
+Return only the JSON object:`;
 
 export async function parseQuery(query) {
   if (!query || query.trim().length === 0) {
     return getDefaultParsedQuery();
   }
 
-  const prompt = PARSE_PROMPT_TEMPLATE.replace('{query}', query.trim());
+  const prompt = PARSE_USER_PROMPT.replace('{query}', query.trim());
 
   try {
-    const response = await fetch(`${OLLAMA_URL}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'gemma3:270m',
-        prompt,
-        stream: false
-      })
+    const response = await generateCompletion(prompt, {
+      model: 'grok-fast',
+      systemPrompt: PARSE_SYSTEM_PROMPT,
+      maxTokens: 200,
+      temperature: 0.3
     });
 
-    if (!response.ok) {
-      throw new Error(`Ollama error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const responseText = data.response?.trim() || '';
-
-    // Try to extract JSON from response
-    const parsed = extractJSON(responseText);
+    const parsed = extractJSON(response);
 
     if (parsed) {
       return normalizeParseResult(parsed);
     }
 
     // Fallback to default if parsing failed
-    console.log('Query parsing failed, using defaults. Response:', responseText);
+    console.log('Query parsing failed, using defaults. Response:', response);
     return getDefaultParsedQuery(query);
 
   } catch (err) {
     console.error('Query parsing error:', err.message);
     return getDefaultParsedQuery(query);
   }
-}
-
-function extractJSON(text) {
-  // Try to find JSON in the response
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      return JSON.parse(jsonMatch[0]);
-    } catch (e) {
-      // Invalid JSON
-    }
-  }
-  return null;
 }
 
 function normalizeParseResult(parsed) {
@@ -154,11 +126,19 @@ export function buildSQLFilters(parsedQuery) {
 
 export async function testQueryParser() {
   const testQuery = "I'm a convert looking for morning sessions about spirituality";
-  const result = await parseQuery(testQuery);
 
-  return {
-    testQuery,
-    parsedResult: result,
-    status: result.topic ? 'ok' : 'partial'
-  };
+  try {
+    const result = await parseQuery(testQuery);
+    return {
+      testQuery,
+      parsedResult: result,
+      status: result.topic ? 'ok' : 'partial'
+    };
+  } catch (err) {
+    return {
+      testQuery,
+      status: 'error',
+      error: err.message
+    };
+  }
 }

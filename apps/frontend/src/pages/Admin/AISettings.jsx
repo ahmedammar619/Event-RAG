@@ -54,8 +54,8 @@ const SEARCH_PIPELINES = [
 ]
 
 const LLM_MODELS = [
-  { id: 'gemma3:270m', name: 'Gemma 3 (270M)', description: 'Fast responses', speed: '~3-5s' },
-  { id: 'gemma3-4b', name: 'Gemma 3 (4B)', description: 'Better quality', speed: '~10-15s' }
+  { id: 'grok-fast', name: 'Grok Fast', description: 'Quick responses, best for parsing', speed: '~2-3s' },
+  { id: 'grok-reasoning', name: 'Grok Reasoning', description: 'Better explanations with chain-of-thought', speed: '~4-6s' }
 ]
 
 export default function AISettings() {
@@ -65,7 +65,7 @@ export default function AISettings() {
   const [settings, setSettings] = useState({
     search_mode: 'direct',
     default_result_count: '5',
-    llm_model: 'gemma3:270m',
+    llm_model: 'grok-fast',
     reasoning_mode: 'full'
   })
   const [health, setHealth] = useState(null)

@@ -29,7 +29,7 @@ This document describes the complete implementation of a RAG (Retrieval Augmente
 │         ▼                    ▼                    ▼                     │
 │  ┌─────────────┐    ┌───────────────┐    ┌──────────────────┐          │
 │  │ Language    │    │ Embedding     │    │ LLM Service      │          │
-│  │ Service     │    │ Service       │    │ (Ollama/gemma3)  │          │
+│  │ Service     │    │ Service       │    │ (Grok API)       │          │
 │  │ (franc-min) │    │ (nomic-embed) │    │                  │          │
 │  └─────────────┘    └───────────────┘    └──────────────────┘          │
 └─────────────────────────────────────────────────────────────────────────┘
@@ -165,8 +165,7 @@ Configure these in your local `.env` file or deployment secrets:
 |----------|-------------|---------|
 | `DATABASE_URL` | Main PostgreSQL connection | `postgres://user:pass@host:port/dbname` |
 | `RAG_DATABASE_URL` | pgvector PostgreSQL connection | `postgres://user:pass@host:port/ragdb` |
-| `OLLAMA_URL` | Ollama LLM service endpoint | `https://your-ollama.example.com` |
-| `OLLAMA_4B_URL` | Ollama 4B model endpoint (optional) | `https://your-ollama-4b.example.com` |
+| `XAI_API_KEY` | Grok API key (xAI) for LLM | `xai-xxxxxxxxxxxx` |
 | `EMBEDDING_URL` | nomic-embed-text service | `https://your-embedding.example.com` |
 | `JWT_SECRET` | JWT signing secret | `your-random-secret-key` |
 | `NODE_ENV` | Environment mode | `development` or `production` |
@@ -175,7 +174,7 @@ Configure these in your local `.env` file or deployment secrets:
 ### Optional Variables
 | Variable | Description |
 |----------|-------------|
-| `LIBRETRANSLATE_URL` | Translation API (falls back to Ollama) |
+| `LIBRETRANSLATE_URL` | Translation API (optional) |
 | `CORS_ORIGIN` | Frontend URL for CORS |
 
 ---
@@ -198,6 +197,7 @@ apps/backend/
 │   ├── services/
 │   │   ├── embeddingService.js     # Generates embeddings via nomic-embed-text-v2-moe
 │   │   ├── languageService.js      # Detects language + translates Arabic
+│   │   ├── llmService.js           # Grok API integration for LLM calls
 │   │   ├── queryParserService.js   # LLM parses queries for Mode A
 │   │   ├── ragService.js           # Core search logic (dual-mode)
 │   │   └── aiSettingsService.js    # Admin settings CRUD
@@ -264,8 +264,28 @@ const english = await translateToEnglish("مرحبا");  // Returns: 'Hello'
 **Detection**: Uses `franc-min` library (instant, no API)
 **Translation**: LibreTranslate (if configured) → Ollama fallback
 
-### 3. queryParserService.js (Mode A only)
-LLM extracts structured filters from natural language queries.
+### 3. llmService.js
+Centralized Grok API integration for all LLM calls.
+
+```javascript
+import { generateCompletion } from './llmService.js';
+
+const response = await generateCompletion("What is 2+2?", {
+  model: 'grok-fast',      // 'grok-fast', 'grok-mini', or 'grok-4'
+  systemPrompt: "You are a helpful assistant.",
+  maxTokens: 500,
+  temperature: 0.7
+});
+```
+
+**Available Models:**
+| Model | ID | Use Case |
+|-------|----|----------|
+| `grok-fast` | `grok-4-1-fast-non-reasoning` | Default, fast responses, best for query parsing |
+| `grok-reasoning` | `grok-4-1-fast-reasoning` | Better explanations with chain-of-thought |
+
+### 4. queryParserService.js (Mode A only)
+Uses Grok API to extract structured filters from natural language queries.
 
 ```javascript
 const parsed = await parseQuery("morning sessions by Dr. Haifaa about family");
@@ -279,8 +299,8 @@ const parsed = await parseQuery("morning sessions by Dr. Haifaa about family");
 }
 ```
 
-### 4. ragService.js
-Core search logic with dual-mode support.
+### 5. ragService.js
+Core search logic with dual-mode support. Uses Grok API via llmService for reasoning.
 
 ```javascript
 // Auto-selects mode based on admin setting
@@ -290,14 +310,14 @@ const results = await searchSessions(ragDb, "I'm a convert", { limit: 15 });
 const withReasoning = await generateReasoning(ragDb, query, sessions);
 ```
 
-### 5. aiSettingsService.js
+### 6. aiSettingsService.js
 CRUD for admin-configurable settings.
 
 ```javascript
 const mode = await getSearchMode(ragDb);           // 'direct' or 'smart'
-const llmModel = await getLlmModel(ragDb);         // 'gemma3:270m' or 'gemma3-4b'
+const llmModel = await getLlmModel(ragDb);         // 'grok-fast' or 'grok-reasoning'
 const reasoningMode = await getReasoningMode(ragDb); // 'full' or 'embedding_only'
-const count = await getDefaultResultCount(ragDb);  // 5, 10, 15, or 20
+const count = await getDefaultResultCount(ragDb);  // 3, 5, 10, 15, or 20
 ```
 
 ---
@@ -367,12 +387,12 @@ Buttons for selecting how many results to analyze:
 - All Results - List icon
 
 ### AISettings.jsx (Admin Page)
-Table format with:
-- Search Mode dropdown (Direct/Smart)
-- Reasoning Mode dropdown (Full/Embedding Only)
-- LLM Model dropdown (gemma3:270m/gemma3-4b)
-- Default Result Count buttons
-- Cost optimization tips
+Responsive table format with:
+- Search Pipeline cards (Smart Search / Search + AI / AI + Search + AI)
+- LLM Model selection (Grok Fast / Grok Reasoning)
+- Default Result Count buttons (3, 5, 10, 15, 20)
+- Analytics summary (last 7 days)
+- Mobile-first responsive design
 
 ---
 
@@ -448,14 +468,13 @@ services:
 
 | Service | Purpose |
 |---------|---------|
-| nomic-embed-text | Vector embeddings (768 dimensions) |
-| gemma3:270m | Fast LLM for reasoning + translation |
-| gemma3-4b | Higher quality LLM (optional) |
+| nomic-embed-text | Vector embeddings (768 dimensions) - Railway hosted |
+| Grok API (xAI) | LLM for reasoning + query parsing |
 | LibreTranslate | Arabic → English translation (optional) |
 
 **Model Details:**
-- Embedding: `nomic-embed-text-v2-moe` (768 dimensions, ~475M params)
-- LLM: `gemma3:270m` for fast responses, `gemma3-4b` for better quality
+- **Embedding**: `nomic-embed-text-v2-moe` (768 dimensions, ~475M params) - Self-hosted on Railway
+- **LLM**: Grok API with `grok-fast` ($0.20/$0.50 per 1M tokens) as default, `grok-4` for higher quality
 
 ---
 
@@ -545,6 +564,16 @@ services:
 - Enhanced analytics table
 - "AI Take" UI branding
 
+### v3.0 - Grok API Migration
+- Migrated from self-hosted Ollama to Grok API (xAI)
+- Added centralized `llmService.js` for all LLM calls
+- Updated model options: `grok-fast`, `grok-mini`, `grok-4`
+- Added default result count option starting from 3
+- Responsive design for AISettings page
+- Enhanced analytics: IP address, device type, browser, OS tracking
+- Fixed visitor token priority for search routes
+- SSL connection fallback for Railway databases
+
 ---
 
 ## Summary of Files
@@ -562,11 +591,12 @@ services:
 ### Backend Services
 | File | Purpose |
 |------|---------|
-| `ragDb.js` | RAG database connection |
+| `ragDb.js` | RAG database connection (SSL fallback) |
 | `embeddingService.js` | Vector embedding generation |
 | `languageService.js` | Language detection + translation |
-| `queryParserService.js` | LLM query parsing |
-| `ragService.js` | Core dual-mode search |
+| `llmService.js` | Grok API integration for LLM calls |
+| `queryParserService.js` | LLM query parsing (uses llmService) |
+| `ragService.js` | Core dual-mode search (uses llmService) |
 | `aiSettingsService.js` | Admin settings CRUD |
 
 ### Frontend Components
