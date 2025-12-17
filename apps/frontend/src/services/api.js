@@ -15,7 +15,18 @@ api.interceptors.request.use((config) => {
   const adminToken = localStorage.getItem('admin_token')
   const visitorToken = localStorage.getItem('visitor_token')
   const moderatorToken = localStorage.getItem('moderator_token')
-  const token = adminToken || visitorToken || moderatorToken
+
+  // Check if this is a visitor-facing AI route (search/reasoning, not admin settings)
+  const isVisitorAIRoute = config.url?.includes('/ai/search') ||
+                           config.url?.includes('/ai/reasoning') ||
+                           config.url?.includes('/ai/sessions')
+  const isVisitorRoute = isVisitorAIRoute || config.url?.includes('/visitors/me')
+
+  // Prioritize visitor token for visitor routes, admin token otherwise
+  const token = isVisitorRoute
+    ? (visitorToken || adminToken || moderatorToken)
+    : (adminToken || visitorToken || moderatorToken)
+
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }

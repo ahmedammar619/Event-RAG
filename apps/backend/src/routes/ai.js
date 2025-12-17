@@ -86,7 +86,10 @@ export default async function aiRoutes(fastify, options) {
 
     // Log the query for analytics
     try {
-      const visitorId = request.user?.role === 'visitor' ? request.user.id : null;
+      // Get user ID - could be visitor, admin, or moderator
+      // If they're logged in as any role, capture their ID
+      const visitorId = request.user?.id || null;
+      const userRole = request.user?.role || 'anonymous';
 
       // Get IP address (handle proxies)
       const ip_address = request.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
@@ -109,6 +112,7 @@ export default async function aiRoutes(fastify, options) {
         language_detected: results.language_detected,
         results_count: results.total_matches,
         search_mode: results.mode,
+        user_role: userRole,
         // Analytics data
         ip_address,
         user_agent,

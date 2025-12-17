@@ -328,8 +328,8 @@ export default function AISettings() {
           <p className="text-xs md:text-sm text-slate-500 mt-1">Number of sessions to show initially</p>
         </div>
 
-        <div className="grid grid-cols-4 gap-2 md:flex md:gap-3">
-          {[5, 10, 15, 20].map(count => (
+        <div className="grid grid-cols-5 gap-2 md:flex md:gap-3">
+          {[3, 5, 10, 15, 20].map(count => (
             <button
               key={count}
               onClick={() => handleResultCountChange(count)}

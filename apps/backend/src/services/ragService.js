@@ -288,14 +288,15 @@ export async function getSessionById(ragDb, sessionId) {
 /**
  * Log a search query for analytics
  */
-export async function logQuery(ragDb, visitorId, queryData) {
+export async function logQuery(ragDb, userId, queryData) {
   const {
     query_original,
     query_english,
     language_detected,
     results_count,
     search_mode,
-    // New analytics fields
+    user_role,
+    // Analytics fields
     ip_address,
     user_agent,
     device_type,
@@ -310,12 +311,12 @@ export async function logQuery(ragDb, visitorId, queryData) {
 
   await ragDb.query(`
     INSERT INTO query_logs (
-      visitor_id, query_original, query_english, detected_language, results_count, search_mode,
+      visitor_id, user_role, query_original, query_english, detected_language, results_count, search_mode,
       ip_address, user_agent, device_type, browser, os, country, city, region, referer, session_id
     )
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
   `, [
-    visitorId, query_original, query_english, language_detected, results_count, search_mode,
+    userId, user_role, query_original, query_english, language_detected, results_count, search_mode,
     ip_address, user_agent, device_type, browser, os, country, city, region, referer, session_id
   ]);
 }
