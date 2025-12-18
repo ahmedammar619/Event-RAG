@@ -11,7 +11,7 @@ import ResultCountSelector from '../../components/explore/ResultCountSelector'
 const EXAMPLE_QUERIES = [
   "I'm a convert, what sessions are best for me?",
   "Sessions about family and parenting",
-  "What's happening in the morning?",
+  "I'm struggling with my faith",
   "Sessions by Dr. Haifaa Younis",
   "Arabic language sessions"
 ]

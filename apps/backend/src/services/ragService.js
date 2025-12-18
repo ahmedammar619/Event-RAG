@@ -15,10 +15,13 @@ import { generateCompletion } from './llmService.js';
  */
 export async function searchSessions(ragDb, query, options = {}) {
   const mode = await getSearchMode(ragDb);
+  console.log(`[SEARCH] Mode: ${mode}, Query: "${query.substring(0, 50)}..."`);
 
   if (mode === 'smart') {
+    console.log('[SEARCH] Using SMART mode - will make LLM call for query parsing');
     return await searchSessionsSmart(ragDb, query, options);
   } else {
+    console.log('[SEARCH] Using DIRECT mode - no LLM call for search');
     return await searchSessionsDirect(ragDb, query, options);
   }
 }
@@ -203,6 +206,7 @@ Format your response as:
 ...`;
 
   try {
+    console.log(`[REASONING] Making LLM call to generate reasoning for ${sessions.length} sessions...`);
     const response = await generateCompletion(userPrompt, {
       model: grokModel,
       systemPrompt,

@@ -9,6 +9,8 @@ export async function generateEmbedding(text) {
     throw new Error('Text is required for embedding generation');
   }
 
+  console.log(`[EMBEDDING API] Generating embedding for: "${text.substring(0, 50)}..."`);
+
   const response = await fetch(`${EMBEDDING_URL}/api/embed`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

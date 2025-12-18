@@ -141,3 +141,7 @@ vite.config.ts.timestamp-*
 
 seed.js
 # agenda_cleaned.csv
+/data
+
+# Backend local data (do not commit)
+apps/backend/data/

@@ -68,6 +68,7 @@ export default async function aiRoutes(fastify, options) {
     preHandler: [fastify.optionalAuth]
   }, async (request, reply) => {
     const { query, session_id } = request.body;
+    console.log(`[ROUTE] POST /api/ai/search - Query: "${query?.substring(0, 50)}..."`);
 
     if (!query || query.trim().length === 0) {
       throw validationError('Query is required');
@@ -139,6 +140,7 @@ export default async function aiRoutes(fastify, options) {
   // POST /api/ai/reasoning
   fastify.post('/reasoning', async (request, reply) => {
     const { query, session_ids } = request.body;
+    console.log(`[ROUTE] POST /api/ai/reasoning - Query: "${query?.substring(0, 50)}...", Sessions: ${session_ids?.length || 0}`);
 
     if (!query || !session_ids || !Array.isArray(session_ids) || session_ids.length === 0) {
       throw validationError('Query and session_ids array are required');

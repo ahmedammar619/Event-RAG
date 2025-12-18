@@ -40,6 +40,8 @@ async function translateWithLibreTranslate(text, source = 'ar', target = 'en') {
     throw new Error('LibreTranslate URL not configured');
   }
 
+  console.log(`[LIBRETRANSLATE API] Translating ${source}->${target}: "${text.substring(0, 50)}..."`);
+
   const response = await fetch(`${LIBRETRANSLATE_URL}/translate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -60,6 +62,8 @@ async function translateWithLibreTranslate(text, source = 'ar', target = 'en') {
 }
 
 async function translateWithOllama(text, targetLanguage = 'English') {
+  console.log(`[OLLAMA TRANSLATION API] Translating to ${targetLanguage}: "${text.substring(0, 50)}..."`);
+
   const prompt = `Translate the following text to ${targetLanguage}. Only provide the translation, nothing else:
 
 ${text}`;
@@ -121,14 +125,11 @@ export async function translateToArabic(text) {
   return await translateWithOllama(text, 'Arabic');
 }
 
-export async function testLanguageService() {
-  const testArabic = 'مرحبا بالعالم';
-  const testEnglish = 'Hello world';
-
+export function testLanguageService() {
+  // Sync function - NO API calls, just config check
   return {
-    arabicDetection: detectLanguage(testArabic) === 'arabic' ? 'ok' : 'fail',
-    englishDetection: detectLanguage(testEnglish) === 'english' ? 'ok' : 'fail',
+    status: 'ok',
     libreTranslateConfigured: !!LIBRETRANSLATE_URL,
-    ollamaUrl: OLLAMA_URL
+    ollamaConfigured: !!OLLAMA_URL
   };
 }

@@ -26,6 +26,7 @@ export async function parseQuery(query) {
   const prompt = PARSE_USER_PROMPT.replace('{query}', query.trim());
 
   try {
+    console.log('[QUERY PARSER] Making LLM call to parse query filters...');
     const response = await generateCompletion(prompt, {
       model: 'grok-fast',
       systemPrompt: PARSE_SYSTEM_PROMPT,

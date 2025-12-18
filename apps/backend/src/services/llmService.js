@@ -41,6 +41,9 @@ export async function generateCompletion(prompt, options = {}) {
   messages.push({ role: 'user', content: prompt });
 
   try {
+    // Log every API call for debugging
+    console.log(`[GROK API CALL] Model: ${modelId}, MaxTokens: ${maxTokens}, Prompt preview: "${prompt.substring(0, 50)}..."`);
+
     const response = await fetch(XAI_API_URL, {
       method: 'POST',
       headers: {
