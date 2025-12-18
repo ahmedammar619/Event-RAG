@@ -31,7 +31,7 @@ export async function searchSessions(ragDb, query, options = {}) {
  * Fast, no LLM parsing, pure semantic search
  */
 export async function searchSessionsDirect(ragDb, query, options = {}) {
-  const { limit = 20 } = options;
+  const { limit = 50, minSimilarity = 0.20 } = options; // Return top 50 relevant results
 
   // Detect language
   const language = detectLanguage(query);
@@ -44,7 +44,9 @@ export async function searchSessionsDirect(ragDb, query, options = {}) {
   // Generate embedding for query
   const queryEmbedding = await generateEmbedding(searchQuery);
 
-  // Vector search
+  // Vector search with minimum similarity threshold
+  const embeddingStr = `[${queryEmbedding.join(',')}]`;
+
   const result = await ragDb.query(`
     SELECT
       s.*,
@@ -52,9 +54,12 @@ export async function searchSessionsDirect(ragDb, query, options = {}) {
       1 - (se.embedding <=> $1::vector) as similarity
     FROM session_embeddings se
     JOIN sessions s ON s.id = se.session_id
+    WHERE 1 - (se.embedding <=> $1::vector) >= $3
     ORDER BY se.embedding <=> $1::vector
     LIMIT $2
-  `, [`[${queryEmbedding.join(',')}]`, limit]);
+  `, [embeddingStr, limit, minSimilarity]);
+
+  console.log(`[SEARCH] Found ${result.rows.length} results (min similarity: ${minSimilarity})`);
 
   return {
     mode: 'direct',

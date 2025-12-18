@@ -13,7 +13,9 @@ export default defineConfig({
       binaryInterval: 300
     },
     hmr: {
-      overlay: true
+      overlay: true,
+      host: 'localhost',
+      port: 3000
     }
   },
   optimizeDeps: {

@@ -16,6 +16,13 @@ const EXAMPLE_QUERIES = [
   "Arabic language sessions"
 ]
 
+// Robot Icon (used for AI features)
+const RobotIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M12 2a1 1 0 011 1v2h3a3 3 0 013 3v2a1 1 0 01-1 1h-1v6a3 3 0 01-3 3H10a3 3 0 01-3-3v-6H6a1 1 0 01-1-1V8a3 3 0 013-3h3V3a1 1 0 011-1zM9 14a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2zm-5-4a1 1 0 00-1 1v1a1 1 0 001 1h4a1 1 0 001-1v-1a1 1 0 00-1-1h-4z"/>
+  </svg>
+)
+
 // Generate a unique session ID for analytics tracking
 const getSessionId = () => {
   let sessionId = sessionStorage.getItem('explore_session_id')
@@ -37,8 +44,8 @@ export default function Explore() {
   const [generatingReasoning, setGeneratingReasoning] = useState(false)
   const [selectedCount, setSelectedCount] = useState(null)
   const [recommendations, setRecommendations] = useState(null)
-  const [reasoningMode, setReasoningMode] = useState('full') // 'full' or 'embedding_only'
-  const [sessionId] = useState(getSessionId) // Stable session ID for this browser session
+  const [reasoningMode, setReasoningMode] = useState('full')
+  const [sessionId] = useState(getSessionId)
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -60,16 +67,13 @@ export default function Explore() {
       const results = response.data.data
       setSearchResults(results)
 
-      // Check if we're in embedding_only mode (detected from response or settings)
-      // In embedding_only mode, skip the count selection and show results directly
       if (results.reasoning_mode === 'embedding_only' || reasoningMode === 'embedding_only') {
         setReasoningMode('embedding_only')
-        // Show top results directly without AI reasoning
         const defaultCount = Math.min(5, results.total_matches)
         const directResults = results.results.slice(0, defaultCount).map(r => ({
           session: r.session,
           relevance_score: r.relevance_score,
-          reasoning: null // No AI reasoning in embedding_only mode
+          reasoning: null
         }))
         setSelectedCount(defaultCount)
         setRecommendations(directResults)
@@ -112,101 +116,128 @@ export default function Explore() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-purple-50 to-white">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4 animate-pulse">
+            <RobotIcon className="w-8 h-8 text-purple-600" />
+          </div>
+          <p className="text-slate-600">Loading AI Assistant...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 to-white">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 via-white to-purple-50">
       <Header />
 
       <div className="flex-1 container mx-auto px-4 py-8 max-w-4xl">
-        {/* Welcome Section */}
+        {/* AI Assistant Header */}
         <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl mb-4 shadow-lg">
+            <RobotIcon className="w-8 h-8 text-white" />
+          </div>
           <h1 className="text-3xl font-bold text-slate-800 mb-2">
-            Session Explorer
+            Session Finder
           </h1>
-          <p className="text-slate-600">
-            Ask me anything about the sessions and I'll help you find what's perfect for you
+          <p className="text-slate-600 max-w-md mx-auto">
+            Smart search finds relevant sessions, then AI explains why they match your interests
           </p>
           {visitor && (
-            <p className="text-sm text-slate-500 mt-2">
-              Logged in as {visitor.name} <button onClick={logout} className="text-purple-600 hover:underline ml-2">Logout</button>
+            <p className="text-sm text-slate-500 mt-3">
+              Welcome, {visitor.name}! <button onClick={logout} className="text-purple-600 hover:underline ml-1">Logout</button>
             </p>
           )}
         </div>
 
-        {/* Search Input */}
-        <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-8">
-          <form onSubmit={handleSearch}>
-            <div className="flex gap-3">
-              <input
-                type="text"
-                className="flex-1 px-4 py-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 outline-none text-lg"
-                placeholder="Ask me about sessions..."
-                value={query}
-                onChange={e => setQuery(e.target.value)}
-                disabled={searching || generatingReasoning}
-              />
-              <button
-                type="submit"
-                className="px-6 py-3 bg-purple-600 text-white rounded-xl font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"
-                disabled={!query.trim() || searching || generatingReasoning}
-              >
-                {searching ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                    Searching
-                  </span>
-                ) : 'Search'}
-              </button>
-            </div>
-          </form>
+        {/* AI Search Input */}
+        <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 mb-8 relative overflow-hidden">
+          {/* Decorative AI sparkles */}
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100 to-transparent rounded-bl-full opacity-50"></div>
 
-          {/* Example Queries */}
-          {!searchResults && !recommendations && (
-            <div className="mt-4">
-              <p className="text-sm text-slate-500 mb-2">Try asking:</p>
-              <div className="flex flex-wrap gap-2">
-                {EXAMPLE_QUERIES.map((example, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => handleExampleClick(example)}
-                    className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition-colors"
-                  >
-                    {example}
-                  </button>
-                ))}
+          <div className="relative">
+            <form onSubmit={handleSearch}>
+              <div className="flex gap-3">
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    className="w-full px-4 py-4 pr-12 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none text-lg transition-all"
+                    placeholder="Describe what you're looking for..."
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    disabled={searching || generatingReasoning}
+                  />
+                  {/* <svg className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg> */}
+                </div>
+                <button
+                  type="submit"
+                  className="px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50 shadow-lg shadow-purple-200 flex items-center gap-2"
+                  disabled={!query.trim() || searching || generatingReasoning}
+                >
+                  {searching ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      <span>Searching</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                      </svg>
+                      <span>Start</span>
+                    </>
+                  )}
+                </button>
               </div>
-            </div>
-          )}
+            </form>
+
+            {/* Example Queries */}
+            {!searchResults && !recommendations && (
+              <div className="mt-5 flex flex-col items-center justify-center">
+                <p className="text-sm text-slate-500 mb-3">
+                  Try searching for:
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {EXAMPLE_QUERIES.map((example, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleExampleClick(example)}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 rounded-full text-sm hover:from-purple-100 hover:to-indigo-100 transition-all border border-purple-100"
+                    >
+                      {example}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Search Results - Before Count Selection */}
+        {/* Search Results */}
         {searchResults && !selectedCount && (
           <>
-            {/* Count Selector */}
-            <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-6 mb-6">
+            <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 mb-6">
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-12 h-12 bg-green-100 rounded-full mb-3">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-gradient-to-br from-green-400 to-emerald-500 rounded-2xl mb-4 shadow-lg">
+                  <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                   </svg>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-800">
-                  Found {searchResults.total_matches} relevant sessions!
+                <h2 className="text-2xl font-bold text-slate-800">
+                  Found {searchResults.total_matches} Matching Sessions!
                 </h2>
-                <p className="text-slate-500 mt-1">
-                  How many would you like AI to explain?
+                <p className="text-slate-500 mt-2 flex items-center justify-center gap-2">
+                  <RobotIcon className="w-5 h-5 text-purple-500" />
+                  Want AI to explain why these match your interests?
                 </p>
                 {searchResults.language_detected === 'arabic' && (
                   <p className="text-sm text-purple-600 mt-2">
-                    Query translated from Arabic for better search results
+                    🌍 Your Arabic query was translated for better matching
                   </p>
                 )}
               </div>
@@ -218,16 +249,22 @@ export default function Explore() {
               />
             </div>
 
-            {/* Preview of ALL Results (without reasoning) */}
+            {/* Preview Results */}
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-700">
-                  All {searchResults.total_matches} Results
+                <h3 className="text-lg font-semibold text-slate-700 flex items-center gap-2">
+                  <span className="w-6 h-6 bg-slate-100 rounded-lg flex items-center justify-center text-sm">
+                    {searchResults.total_matches}
+                  </span>
+                  Sessions Found
                 </h3>
                 <button
                   onClick={handleReset}
-                  className="text-purple-600 hover:underline text-sm"
+                  className="text-purple-600 hover:underline text-sm flex items-center gap-1"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   New Search
                 </button>
               </div>
@@ -245,33 +282,53 @@ export default function Explore() {
           </>
         )}
 
-        {/* Loading State for Reasoning */}
+        {/* AI Thinking State */}
         {generatingReasoning && (
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 p-8 mb-8 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto mb-4"></div>
-            <p className="text-lg text-slate-600">Generating personalized recommendations...</p>
-            <p className="text-sm text-slate-400 mt-1">This may take a few seconds</p>
+          <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-2xl shadow-xl border border-purple-200 p-8 mb-8">
+            <div className="text-center">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white rounded-2xl shadow-lg mb-5">
+                <div className="relative">
+                  <RobotIcon className="w-10 h-10 text-purple-600 animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-ping"></div>
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold text-slate-800 mb-2">AI is Analyzing Sessions...</h3>
+              <p className="text-slate-600 mb-4">Understanding why each session matches your interests</p>
+              <div className="flex items-center justify-center gap-1">
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                <div className="w-2 h-2 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Recommendations with Reasoning */}
+        {/* AI Recommendations */}
         {recommendations && (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-800">
-                  {reasoningMode === 'embedding_only' ? 'Top Matching Sessions' : 'Your Personalized Recommendations'}
-                </h2>
-                {reasoningMode === 'embedding_only' && (
-                  <p className="text-sm text-slate-500 mt-1">
-                    Ranked by relevance to your search
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <RobotIcon className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-slate-800">
+                    {reasoningMode === 'embedding_only' ? 'Top Matches' : 'AI Explanations'}
+                  </h2>
+                  <p className="text-sm text-slate-500">
+                    {reasoningMode === 'embedding_only'
+                      ? 'Ranked by relevance'
+                      : 'AI explains why each session matches your query'}
                   </p>
-                )}
+                </div>
               </div>
               <button
                 onClick={handleReset}
-                className="text-purple-600 hover:underline text-sm"
+                className="text-purple-600 hover:underline text-sm flex items-center gap-1"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
                 New Search
               </button>
             </div>
@@ -286,7 +343,6 @@ export default function Explore() {
               />
             ))}
 
-            {/* Show more results option in embedding_only mode */}
             {reasoningMode === 'embedding_only' && searchResults && recommendations.length < searchResults.total_matches && (
               <div className="text-center">
                 <button
@@ -300,9 +356,9 @@ export default function Explore() {
                     setRecommendations(moreResults)
                     setSelectedCount(moreCount)
                   }}
-                  className="px-6 py-2 border border-purple-300 text-purple-600 rounded-lg hover:bg-purple-50 transition-colors"
+                  className="px-6 py-3 bg-white border-2 border-purple-200 text-purple-600 rounded-xl hover:bg-purple-50 transition-all font-medium"
                 >
-                  Show More Sessions ({searchResults.total_matches - recommendations.length} remaining)
+                  Show More ({searchResults.total_matches - recommendations.length} remaining)
                 </button>
               </div>
             )}

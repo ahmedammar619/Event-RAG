@@ -2,17 +2,23 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Install curl for health checks (optional for dev)
+RUN apk add --no-cache curl
+
 # Copy package files from monorepo structure
 COPY apps/backend/package*.json ./
 
-# Install ALL dependencies (including dev)
+# Install ALL dependencies (including dev for nodemon)
 RUN npm install
 
 # Copy source (will be overwritten by volume mount)
 COPY apps/backend/ ./
 
+# Environment for file watching in Docker
+ENV NODE_ENV=development
+
 # Expose port
 EXPOSE 3001
 
-# Start with hot reload using Node's --watch flag
+# Start with nodemon for hot reload
 CMD ["npm", "run", "dev"]

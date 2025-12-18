@@ -77,8 +77,8 @@ export default async function aiRoutes(fastify, options) {
     // Get reasoning mode to include in response
     const reasoningMode = await getReasoningMode(ragDb);
 
-    // Always return up to 20 results - user selects how many to get AI reasoning for
-    const results = await searchSessions(ragDb, query.trim(), { limit: 20 });
+    // Return all results - user selects how many to get AI reasoning for (3, 5, or 10)
+    const results = await searchSessions(ragDb, query.trim(), { limit: 100 });
 
     // Log the query for analytics
     try {
