@@ -27,11 +27,12 @@ export async function searchSessions(ragDb, query, options = {}) {
 }
 
 /**
- * Mode B: Direct Vector Search
- * Fast, no LLM parsing, pure semantic search
+ * Mode B: Hybrid Search (Keyword + Vector)
+ * Combines exact keyword matching with semantic vector search
+ * Uses weighted blending for accurate relevance scores
  */
 export async function searchSessionsDirect(ragDb, query, options = {}) {
-  const { limit = 50, minSimilarity = 0.20 } = options; // Return top 50 relevant results
+  const { limit = 20, minSimilarity = 0.25 } = options;
 
   // Detect language
   const language = detectLanguage(query);
@@ -41,35 +42,128 @@ export async function searchSessionsDirect(ragDb, query, options = {}) {
     ? await translateToEnglish(query)
     : query;
 
-  // Generate embedding for query
-  const queryEmbedding = await generateEmbedding(searchQuery);
+  // Extract keywords (words 3+ chars, lowercase, remove stopwords)
+  const stopwords = new Set(['the', 'and', 'for', 'are', 'but', 'not', 'you', 'all', 'can', 'her', 'was', 'one', 'our', 'out', 'has', 'have', 'been', 'will', 'what', 'when', 'who', 'how', 'this', 'that', 'with', 'from', 'they', 'would', 'there', 'their', 'about', 'which', 'could', 'other', 'into', 'your', 'just', 'also', 'some', 'than', 'them', 'these', 'then', 'only', 'its', 'over', 'such', 'make', 'like', 'want', 'session', 'sessions', 'looking', 'find', 'search', 'best', 'good', 'need']);
 
-  // Vector search with minimum similarity threshold
+  const keywords = searchQuery
+    .toLowerCase()
+    .split(/\s+/)
+    .filter(w => w.length >= 3)
+    .map(w => w.replace(/[^a-z0-9]/g, ''))
+    .filter(w => w.length >= 3 && !stopwords.has(w));
+
+  console.log(`[SEARCH] Keywords extracted: ${keywords.join(', ')}`);
+
+  // Generate embedding for vector search
+  const queryEmbedding = await generateEmbedding(searchQuery);
   const embeddingStr = `[${queryEmbedding.join(',')}]`;
 
-  const result = await ragDb.query(`
-    SELECT
-      s.*,
-      se.searchable_text,
-      1 - (se.embedding <=> $1::vector) as similarity
-    FROM session_embeddings se
-    JOIN sessions s ON s.id = se.session_id
-    WHERE 1 - (se.embedding <=> $1::vector) >= $3
-    ORDER BY se.embedding <=> $1::vector
-    LIMIT $2
-  `, [embeddingStr, limit, minSimilarity]);
+  // Single query: Get all sessions with both keyword and vector scores
+  let sqlQuery;
+  let sqlParams;
 
-  console.log(`[SEARCH] Found ${result.rows.length} results (min similarity: ${minSimilarity})`);
+  if (keywords.length > 0) {
+    // Build keyword scoring for each field
+    const keywordScoreParts = keywords.map((_, i) => `(
+      CASE WHEN LOWER(s.title) LIKE LOWER($${i + 1}) THEN 0.35 ELSE 0 END +
+      CASE WHEN LOWER(s.speakers) LIKE LOWER($${i + 1}) THEN 0.25 ELSE 0 END +
+      CASE WHEN LOWER(s.track) LIKE LOWER($${i + 1}) THEN 0.20 ELSE 0 END +
+      CASE WHEN LOWER(COALESCE(s.description_english, s.description_original, '')) LIKE LOWER($${i + 1}) THEN 0.10 ELSE 0 END +
+      CASE WHEN LOWER(COALESCE(s.tags, '')) LIKE LOWER($${i + 1}) THEN 0.10 ELSE 0 END
+    )`).join(' + ');
+
+    // Normalize keyword score by number of keywords (so more keywords = higher potential)
+    const normalizedKeywordScore = `(${keywordScoreParts}) / ${keywords.length}`;
+
+    sqlParams = [
+      ...keywords.map(k => `%${k}%`),
+      embeddingStr,
+      minSimilarity,
+      limit
+    ];
+
+    const embeddingParamIdx = keywords.length + 1;
+    const minSimParamIdx = keywords.length + 2;
+    const limitParamIdx = keywords.length + 3;
+
+    sqlQuery = `
+      SELECT
+        s.*,
+        se.searchable_text,
+        1 - (se.embedding <=> $${embeddingParamIdx}::vector) as vector_similarity,
+        ${normalizedKeywordScore} as keyword_score,
+        -- Blend: 60% keyword (if matches) + 40% vector, or 100% vector if no keyword match
+        CASE
+          WHEN ${normalizedKeywordScore} > 0 THEN
+            GREATEST(
+              (0.6 * ${normalizedKeywordScore}) + (0.4 * (1 - (se.embedding <=> $${embeddingParamIdx}::vector))),
+              1 - (se.embedding <=> $${embeddingParamIdx}::vector)
+            )
+          ELSE
+            1 - (se.embedding <=> $${embeddingParamIdx}::vector)
+        END as final_score
+      FROM sessions s
+      JOIN session_embeddings se ON s.id = se.session_id
+      WHERE 1 - (se.embedding <=> $${embeddingParamIdx}::vector) >= $${minSimParamIdx}
+         OR ${normalizedKeywordScore} > 0
+      ORDER BY final_score DESC
+      LIMIT $${limitParamIdx}
+    `;
+  } else {
+    // No keywords - pure vector search
+    sqlParams = [embeddingStr, minSimilarity, limit];
+    sqlQuery = `
+      SELECT
+        s.*,
+        se.searchable_text,
+        1 - (se.embedding <=> $1::vector) as vector_similarity,
+        0 as keyword_score,
+        1 - (se.embedding <=> $1::vector) as final_score
+      FROM sessions s
+      JOIN session_embeddings se ON s.id = se.session_id
+      WHERE 1 - (se.embedding <=> $1::vector) >= $2
+      ORDER BY final_score DESC
+      LIMIT $3
+    `;
+  }
+
+  let result = await ragDb.query(sqlQuery, sqlParams);
+
+  console.log(`[SEARCH] Found ${result.rows.length} results (min: ${minSimilarity})`);
+
+  // FALLBACK: If too few results, retry with lower threshold
+  if (result.rows.length < 3 && minSimilarity > 0.22) {
+    const lowerThreshold = 0.22;
+    console.log(`[SEARCH] Too few results, retrying with min: ${lowerThreshold}`);
+
+    if (keywords.length > 0) {
+      sqlParams[sqlParams.length - 2] = lowerThreshold; // Update minSimilarity param
+    } else {
+      sqlParams[1] = lowerThreshold;
+    }
+
+    result = await ragDb.query(sqlQuery, sqlParams);
+    console.log(`[SEARCH] After fallback: ${result.rows.length} results`);
+  }
+
+  // Filter results below minimum threshold
+  const filteredResults = result.rows.filter(row => parseFloat(row.final_score) >= 0.22);
+
+  if (filteredResults.length > 0) {
+    const topResult = filteredResults[0];
+    console.log(`[SEARCH] Top result: "${topResult.title}" - keyword: ${parseFloat(topResult.keyword_score || 0).toFixed(3)}, vector: ${parseFloat(topResult.vector_similarity || 0).toFixed(3)}, final: ${parseFloat(topResult.final_score || 0).toFixed(3)}`);
+  }
 
   return {
     mode: 'direct',
     query_original: query,
     query_english: searchQuery,
     language_detected: language,
-    total_matches: result.rows.length,
-    results: result.rows.map(row => ({
+    total_matches: filteredResults.length,
+    results: filteredResults.map(row => ({
       session: formatSession(row),
-      relevance_score: parseFloat(row.similarity).toFixed(3)
+      relevance_score: parseFloat(row.final_score).toFixed(3),
+      match_type: parseFloat(row.keyword_score || 0) > 0 ? 'keyword' : 'semantic'
     }))
   };
 }

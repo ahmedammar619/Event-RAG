@@ -60,13 +60,21 @@ User Query → Detect Language → Translate (if Arabic) → LLM Parse Query
 → Extract Filters (speaker, time, track) → SQL Pre-Filter → Vector Search → Results
 ```
 
-### Mode B: Direct Vector Search (~400ms)
-Best for simple semantic queries like "sessions about spirituality"
+### Mode B: Hybrid Search (Keyword + Vector) (~500ms) - DEFAULT
+Combines exact keyword matching with semantic vector search for best results.
 
 ```
-User Query → Detect Language → Translate (if Arabic) → Generate Embedding
-→ Vector Similarity Search → Results
+User Query → Detect Language → Translate (if Arabic)
+→ STEP 1: Keyword Search (ILIKE on title, speakers, track, description)
+→ STEP 2: Vector Similarity Search (semantic matching)
+→ STEP 3: Merge Results (keyword matches boosted to top)
 ```
+
+**Why Hybrid Search?**
+- Pure vector search can return semantically similar but irrelevant results (e.g., "latino" matching "katino")
+- Keyword search ensures exact matches rank highest
+- Vector search still finds related content when no exact match exists
+- Keyword matches get boosted scores (0.5 + keyword_score) to rank above vector-only matches
 
 ### Two-Step Query Flow (Cost Optimization)
 1. **Step 1**: Fast search returns results WITHOUT LLM reasoning
@@ -573,6 +581,18 @@ services:
 - Enhanced analytics: IP address, device type, browser, OS tracking
 - Fixed visitor token priority for search routes
 - SSL connection fallback for Railway databases
+
+### v3.1 - Hybrid Search & UI Improvements
+- **Hybrid Search**: Combined keyword matching + vector search for better relevance
+  - Keyword matches (ILIKE on title, speakers, track, description) get boosted scores
+  - Exact matches now rank higher than semantically similar but irrelevant results
+  - Fixes issues like "latino" incorrectly matching "katino"
+- **UI Clarification**: Honest labeling of AI vs non-AI features
+  - "Smart Semantic Search" for initial search (uses embeddings, not generative AI)
+  - "AI Explanations" only for LLM-generated reasoning (actual AI)
+  - Robot icon used consistently for AI features
+- **ResultCountSelector**: Dynamic options (3, 5, 10, or "All X" for in-between counts)
+- **Minimum Similarity Threshold**: 0.20 to filter irrelevant vector matches
 
 ---
 

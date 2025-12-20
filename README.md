@@ -78,7 +78,11 @@ A RAG (Retrieval Augmented Generation) powered system that helps event visitors 
 ```
 User Query → Language Detection → Translation (if Arabic)
      ↓
-Vector Search (pgvector) → Top Results
+Hybrid Search:
+  ├─ Keyword Search (ILIKE on title, speakers, track, description)
+  └─ Vector Search (pgvector semantic similarity)
+     ↓
+Merge Results (keyword matches boosted to top)
      ↓
 User Selects Count (Top 3/5/10/All)
      ↓
@@ -97,8 +101,13 @@ Grok API Reasoning → Personalized Session Cards
 
 | Mode | Description | Latency |
 |------|-------------|---------|
-| **Direct** | Pure vector similarity search | ~400ms |
+| **Hybrid (Default)** | Keyword matching + vector search for best results | ~500ms |
 | **Smart** | LLM parses query → SQL filters → vector search | ~800ms |
+
+**Hybrid Search Features:**
+- Exact keyword matches rank highest (title, speakers, track, description)
+- Semantic vector search finds related content
+- Prevents irrelevant matches (e.g., "latino" won't match "katino")
 
 ### Visitor Flow
 1. Visitor registers/logs in at `/visitor/login`

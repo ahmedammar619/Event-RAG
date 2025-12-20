@@ -1,7 +1,14 @@
-// Robot Icon for AI
+// AI Assistant Icon (friendly robot face)
 const RobotIcon = ({ className = "w-5 h-5" }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2a1 1 0 011 1v2h3a3 3 0 013 3v2a1 1 0 01-1 1h-1v6a3 3 0 01-3 3H10a3 3 0 01-3-3v-6H6a1 1 0 01-1-1V8a3 3 0 013-3h3V3a1 1 0 011-1zM9 14a1 1 0 100 2 1 1 0 000-2zm6 0a1 1 0 100 2 1 1 0 000-2zm-5-4a1 1 0 00-1 1v1a1 1 0 001 1h4a1 1 0 001-1v-1a1 1 0 00-1-1h-4z"/>
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <rect x="4" y="6" width="16" height="14" rx="3" />
+    <line x1="12" y1="6" x2="12" y2="2" />
+    <circle cx="12" cy="2" r="1" fill="currentColor" />
+    <circle cx="9" cy="12" r="1.5" fill="currentColor" />
+    <circle cx="15" cy="12" r="1.5" fill="currentColor" />
+    <path d="M9 16h6" strokeLinecap="round" />
+    <rect x="1" y="10" width="3" height="4" rx="1" fill="currentColor" />
+    <rect x="20" y="10" width="3" height="4" rx="1" fill="currentColor" />
   </svg>
 )
 
