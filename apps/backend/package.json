@@ -4,21 +4,26 @@
   "type": "module",
   "main": "src/app.js",
   "scripts": {
-    "dev": "node --watch src/app.js",
+    "dev": "nodemon",
     "start": "node src/app.js",
     "build": "echo 'No build step needed for Node.js'",
     "migrate": "node scripts/migrate.js",
+    "migrate:rag": "node scripts/migrate-rag.js",
     "seed": "node scripts/seed.js",
-    "import-sessions": "node scripts/import-sessions.js"
+    "import-sessions": "node scripts/import-sessions.js",
+    "translate-sessions": "node scripts/translate-sessions.js",
+    "import-sessions:rag": "node scripts/import-sessions-rag.js"
   },
   "dependencies": {
     "@fastify/cors": "^8.4.1",
     "@fastify/jwt": "^7.2.4",
     "bcrypt": "^5.1.1",
     "csv-parse": "^6.1.0",
+    "csv-stringify": "^6.6.0",
     "dotenv": "^16.3.1",
     "fastify": "^4.24.3",
     "fastify-plugin": "^4.5.1",
+    "franc-min": "^6.2.0",
     "pg": "^8.11.3"
   },
   "devDependencies": {

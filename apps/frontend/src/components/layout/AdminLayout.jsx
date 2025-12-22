@@ -20,8 +20,8 @@ export default function AdminLayout() {
     { to: '/admin/sessions', label: 'Sessions', icon: '📋' },
     { to: '/admin/moderators', label: 'Moderators', icon: '👥' },
     { to: '/admin/assignments', label: 'Assignments', icon: '✅' },
-    { to: '/admin/export', label: 'Export Data', icon: '📥' }
-    // { to: '/admin/analytics', label: 'Analytics', icon: '📈' }
+    { to: '/admin/export', label: 'Export Data', icon: '📥' },
+    { to: '/admin/ai-settings', label: 'AI Settings', icon: '🤖' }
   ]
 
   return (

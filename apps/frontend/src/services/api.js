@@ -10,11 +10,28 @@ const api = axios.create({
   }
 })
 
-// Add token from localStorage if exists
-const token = localStorage.getItem('admin_token')
-if (token) {
-  api.defaults.headers.common['Authorization'] = `Bearer ${token}`
-}
+// Request interceptor - adds auth token dynamically on each request
+api.interceptors.request.use((config) => {
+  const adminToken = localStorage.getItem('admin_token')
+  const visitorToken = localStorage.getItem('visitor_token')
+  const moderatorToken = localStorage.getItem('moderator_token')
+
+  // Check if this is a visitor-facing AI route (search/reasoning, not admin settings)
+  const isVisitorAIRoute = config.url?.includes('/ai/search') ||
+                           config.url?.includes('/ai/reasoning') ||
+                           config.url?.includes('/ai/sessions')
+  const isVisitorRoute = isVisitorAIRoute || config.url?.includes('/visitors/me')
+
+  // Prioritize visitor token for visitor routes, admin token otherwise
+  const token = isVisitorRoute
+    ? (visitorToken || adminToken || moderatorToken)
+    : (adminToken || visitorToken || moderatorToken)
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+})
 
 // Response interceptor for error handling
 api.interceptors.response.use(
@@ -93,4 +110,24 @@ export const assignmentsService = {
 export const analyticsService = {
   track: (data) => api.post('/analytics/track', data).catch(() => {}), // Silent fail
   getAnalytics: (params) => api.get('/analytics', { params })
+}
+
+export const visitorsService = {
+  register: (data) => api.post('/visitors/register', data),
+  login: (email) => api.post('/visitors/login', { email }),
+  getMe: () => api.get('/visitors/me')
+}
+
+export const aiService = {
+  search: (query, sessionId) => api.post('/ai/search', { query, session_id: sessionId }),
+  getReasoning: (query, sessionIds) => api.post('/ai/reasoning', { query, session_ids: sessionIds }),
+  getSessions: (params) => api.get('/ai/sessions', { params }),
+  getSession: (id) => api.get(`/ai/sessions/${id}`),
+  getSettings: () => api.get('/ai/settings'),
+  setSearchMode: (mode) => api.put('/ai/settings/search-mode', { mode }),
+  setResultCount: (count) => api.put('/ai/settings/result-count', { count }),
+  setLlmModel: (model) => api.put('/ai/settings/llm-model', { model }),
+  setReasoningMode: (mode) => api.put('/ai/settings/reasoning-mode', { mode }),
+  getHealth: () => api.get('/ai/health'),
+  getAnalytics: (days) => api.get('/ai/analytics', { params: { days } })
 }

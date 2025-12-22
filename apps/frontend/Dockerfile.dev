@@ -5,7 +5,7 @@ WORKDIR /app
 # Copy package files from monorepo structure
 COPY apps/frontend/package*.json ./
 
-# Install ALL dependencies (including dev)
+# Install ALL dependencies (including dev for vite)
 RUN npm install
 
 # Copy source (will be overwritten by volume mount)
@@ -14,9 +14,10 @@ COPY apps/frontend/ ./
 # Environment for file watching in Docker
 ENV CHOKIDAR_USEPOLLING=true
 ENV WATCHPACK_POLLING=true
+ENV NODE_ENV=development
 
 # Expose port
 EXPOSE 3000
 
-# Start vite dev server
+# Start vite dev server with HMR
 CMD ["npm", "run", "dev"]

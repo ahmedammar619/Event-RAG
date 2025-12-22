@@ -8,6 +8,7 @@ Volunteer coordination platform for the MASCON Annual Event in Chicago. This pla
 
 - [Overview](#overview)
 - [Features](#features)
+- [AI Session Finder](#ai-session-finder)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
 - [Documentation](#documentation)
@@ -61,13 +62,76 @@ This platform solves the challenge of coordinating volunteer moderators for even
 
 ---
 
+## AI Session Finder
+
+A RAG (Retrieval Augmented Generation) powered system that helps event visitors discover relevant sessions using natural language queries.
+
+### Key Features
+- **Natural Language Search**: Ask questions like "I'm a convert, what session is a must see?"
+- **Arabic + English Support**: Automatic language detection and translation
+- **Smart Search Modes**: Admin-toggleable Direct (fast) and Smart (hybrid) search
+- **AI-Powered Reasoning**: Personalized explanations for why each session is relevant
+- **Cost-Optimized**: Two-step query flow reduces LLM costs by 75%+
+
+### Architecture
+
+```
+User Query → Language Detection → Translation (if Arabic)
+     ↓
+Hybrid Search:
+  ├─ Keyword Search (ILIKE on title, speakers, track, description)
+  └─ Vector Search (pgvector semantic similarity)
+     ↓
+Merge Results (keyword matches boosted to top)
+     ↓
+User Selects Count (Top 3/5/10/All)
+     ↓
+Grok API Reasoning → Personalized Session Cards
+```
+
+### AI Services
+
+| Service | Purpose |
+|---------|---------|
+| **nomic-embed-text** | Vector embeddings (768 dimensions) - Railway hosted |
+| **Grok API (xAI)** | LLM for reasoning and query parsing |
+| **LibreTranslate** | Arabic → English translation (optional) |
+
+### Search Modes
+
+| Mode | Description | Latency |
+|------|-------------|---------|
+| **Hybrid (Default)** | Keyword matching + vector search for best results | ~500ms |
+| **Smart** | LLM parses query → SQL filters → vector search | ~800ms |
+
+**Hybrid Search Features:**
+- Exact keyword matches rank highest (title, speakers, track, description)
+- Semantic vector search finds related content
+- Prevents irrelevant matches (e.g., "latino" won't match "katino")
+
+### Visitor Flow
+1. Visitor registers/logs in at `/visitor/login`
+2. Asks a question at `/explore`
+3. Selects how many results to analyze
+4. Views sessions with AI-generated reasoning
+
+### Admin Settings
+- Select search pipeline (Smart Search / Search + AI / AI + Search + AI)
+- Select LLM model (Grok Fast / Grok Reasoning)
+- Set default result count (3, 5, 10, 15, 20)
+
+For detailed implementation, see [context/rag-implementation.md](context/rag-implementation.md).
+
+---
+
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React + Vite (JavaScript only, no TypeScript) |
 | **Backend** | Fastify (Node.js) |
-| **Database** | PostgreSQL (Railway hosted) |
+| **Database** | PostgreSQL (Railway hosted) + pgvector for RAG |
+| **AI/LLM** | Grok API (xAI) for reasoning, nomic-embed-text for embeddings |
 | **Monorepo** | Nx |
 | **Containerization** | Docker (2 containers: frontend, backend) |
 | **Deployment** | Railway |
@@ -121,6 +185,7 @@ Detailed documentation is available in the `context/` directory:
 | [development.md](context/development.md) | Local development setup |
 | [styling.md](context/styling.md) | Tailwind CSS, theming, components |
 | [features.md](context/features.md) | Additional features (export, reset, etc.) |
+| [rag-implementation.md](context/rag-implementation.md) | AI Session Finder implementation details |
 
 ---
 
@@ -558,6 +623,9 @@ Each service uses its own Dockerfile located in its directory.
 # Database
 DATABASE_URL=postgresql://postgres:<PASSWORD>@<HOST>:<PORT>/railway
 
+# RAG Database (pgvector)
+RAG_DATABASE_URL=postgres://<USER>:<PASSWORD>@<HOST>:<PORT>/<DB_NAME>
+
 # Server
 PORT=3001
 HOST=0.0.0.0
@@ -571,6 +639,11 @@ JWT_SECRET=your-secret-key-here
 # Admin Setup
 ADMIN_EMAIL=admin@mascon.org
 ADMIN_PASSWORD=initial-password
+
+# AI Services
+XAI_API_KEY=your-xai-api-key-here
+EMBEDDING_URL=https://your-nomic-embed-text.up.railway.app
+LIBRETRANSLATE_URL=https://your-libretranslate.up.railway.app  # Optional
 ```
 
 ### Frontend (`apps/frontend/.env`)
