@@ -1,6 +1,6 @@
-# Vewoz Event Assister
+# Vewoz Event RAG
 
-Comprehensive event management platform for an Annual Event. Features **smart auto-assignment** for volunteer moderators and an **AI-powered session finder** for attendees.
+Comprehensive event management platform for an Annual Event. Features **smart auto-assignment** for volunteer moderators and an **AI-powered RAG session finder** for attendees.
 
 ![Vewoz AutoAssigner Open Graph](apps/frontend/public/og-image.png)
 
