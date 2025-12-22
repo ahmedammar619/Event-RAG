@@ -1,4 +1,4 @@
-# Vewoz Moderation System | MASCON
+# Vewoz Event Assister
 
 Comprehensive event management platform for an Annual Event. Features **smart auto-assignment** for volunteer moderators and an **AI-powered session finder** for attendees.
 
