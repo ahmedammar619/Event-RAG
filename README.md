@@ -1,6 +1,6 @@
 # Vewoz Moderation System | MASCON
 
-Comprehensive event management platform for the MASCON Annual Event in Chicago. Features **smart auto-assignment** for volunteer moderators and an **AI-powered session finder** for attendees.
+Comprehensive event management platform for an Annual Event. Features **smart auto-assignment** for volunteer moderators and an **AI-powered session finder** for attendees.
 
 ![Vewoz AutoAssigner Open Graph](apps/frontend/public/og-image.png)
 
