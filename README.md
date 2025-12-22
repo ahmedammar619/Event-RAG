@@ -1,13 +1,31 @@
 # Vewoz Moderation System | MASCON
 
-Volunteer coordination platform for the MASCON Annual Event in Chicago. This platform helps coordinate volunteers across event sessions with automated scheduling and assignment.
+Comprehensive event management platform for the MASCON Annual Event in Chicago. Features **smart auto-assignment** for volunteer moderators and an **AI-powered session finder** for attendees.
 
 ![Vewoz AutoAssigner Open Graph](apps/frontend/public/og-image.png)
 
+## Two Core Features
+
+### 1. Auto-Assignment System (Moderators)
+One-click algorithm that optimally assigns volunteer moderators to sessions based on their availability, balancing workload across all volunteers.
+
+```
+Volunteers Register → Set Availability → Admin Clicks "Auto-Assign" → Done!
+```
+
+### 2. AI Session Finder (Visitors)
+RAG-powered search that helps attendees discover relevant sessions using natural language queries like *"I'm a convert, what sessions should I attend?"*
+
+```
+Ask Question → Smart Search (Keyword + Vector) → AI Explains Why Each Session Matches
+```
+
+---
+
 ## Table of Contents
 
-- [Overview](#overview)
 - [Features](#features)
+- [Auto-Assignment Algorithm](#auto-assignment-algorithm)
 - [AI Session Finder](#ai-session-finder)
 - [Tech Stack](#tech-stack)
 - [Quick Start](#quick-start)
@@ -23,20 +41,6 @@ Volunteer coordination platform for the MASCON Annual Event in Chicago. This pla
 
 ---
 
-## Overview
-
-This platform solves the challenge of coordinating volunteer moderators for event sessions. Admins define event days and sessions, volunteers submit their availability, and the system auto-assigns moderators to sessions optimally.
-
-### Key Capabilities
-
-1. **Admin Dashboard**: Configure event days, time slots, and sessions
-2. **Volunteer Portal**: Moderators input their availability (from/to times per day)
-3. **Session Management**: Track sessions with name, time, room location, and headcount
-4. **Auto-Assignment**: One-click algorithm to assign moderators to sessions based on availability
-5. **Headcount Tracking**: Moderators can update session headcount after events
-
----
-
 ## Features
 
 ### For Admins
@@ -44,13 +48,13 @@ This platform solves the challenge of coordinating volunteer moderators for even
 - Create/edit/delete rooms with capacity
 - Create/edit/delete sessions (name, time, room, date, moderators needed)
 - View all registered moderators and their availability
-- Run auto-assignment algorithm with smart distribution
+- **Run auto-assignment algorithm** with smart distribution
 - Manual assignment overrides
 - Export all data to CSV (moderators, sessions, assignments, etc.)
-- Reset event data (danger zone) with double confirmation
+- Configure AI settings (search mode, LLM model, result count)
 - Dashboard with real-time statistics
 
-### For Moderators
+### For Moderators (Volunteers)
 - Register with name, email, phone (US format auto-formatting)
 - Dedicated portal with sidebar navigation
 - **Schedule tab**: View assigned sessions with times and rooms
@@ -58,7 +62,42 @@ This platform solves the challenge of coordinating volunteer moderators for even
 - Set schedule preference (back-to-back, spread out, or flexible)
 - Update headcount for sessions (exact count or percentage of room capacity)
 - Persistent sessions - stay logged in without timeout
-- Email lookup for returning moderators
+
+### For Visitors (Attendees)
+- **AI Session Finder**: Natural language search for sessions
+- Arabic + English support with automatic translation
+- Personalized AI explanations for why each session matches
+- Simple registration with email
+
+---
+
+## Auto-Assignment Algorithm
+
+The system automatically assigns moderators to sessions with one click.
+
+### How It Works
+```
+1. For each session (sorted by time):
+   → Find all moderators available during that time slot
+   → Score each moderator based on:
+      • Total available hours (more = higher score)
+      • Current assignment count (fewer = higher score)
+      • Schedule preference (consecutive vs spread out)
+   → Assign top N moderators (where N = moderators_needed)
+   → Balance workload across all volunteers
+```
+
+### Scoring Formula
+```javascript
+score = (totalAvailableHours * 10) - (currentAssignments * 15) + preferenceBonus
+```
+
+### Features
+- Respects moderator availability windows
+- Balances assignments across all volunteers
+- Considers schedule preferences (back-to-back vs spread out)
+- Admin can manually override any assignment
+- One-click reset to reassign all
 
 ---
 
@@ -650,47 +689,6 @@ LIBRETRANSLATE_URL=https://your-libretranslate.up.railway.app  # Optional
 ```env
 VITE_API_URL=http://localhost:3001
 ```
-
----
-
-## Auto-Assignment Algorithm
-
-The auto-assignment algorithm works as follows:
-
-```javascript
-// Pseudocode
-function autoAssign() {
-  sessions = getAllSessionsSortedByTime()
-
-  for each session in sessions {
-    availableModerators = findModeratorsAvailableDuring(
-      session.event_day_id,
-      session.start_time,
-      session.end_time
-    )
-
-    // Score moderators (prefer those with fewer assignments)
-    scoredModerators = availableModerators.map(m => ({
-      moderator: m,
-      score: calculateScore(m.totalAvailability, m.currentAssignments)
-    }))
-
-    // Sort by score (higher = more available, fewer assignments)
-    scoredModerators.sort((a, b) => b.score - a.score)
-
-    // Assign top N moderators
-    toAssign = scoredModerators.slice(0, session.moderators_needed)
-    for each moderator in toAssign {
-      createAssignment(session.id, moderator.id, 'auto')
-    }
-  }
-}
-```
-
-**Scoring factors:**
-- Total available hours (more = higher score)
-- Current assignment count (fewer = higher score)
-- Avoid back-to-back sessions when possible
 
 ---
 
