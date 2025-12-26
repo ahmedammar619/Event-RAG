@@ -83,6 +83,11 @@ export default function Headcount() {
     if (now >= sessionStart && now <= sessionEnd) return 'now'
     if (sessionStart > now && sessionStart <= oneHourFromNow) return 'soon'
     if (sessionStart > oneHourFromNow) return 'upcoming'
+
+    // Check if just ended (within last hour)
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000)
+    if (sessionEnd >= oneHourAgo && sessionEnd < now) return 'just_ended'
+
     return 'past'
   }
 
@@ -112,7 +117,8 @@ export default function Headcount() {
         if (timeFilter === 'now' && status !== 'now') return false
         if (timeFilter === 'soon' && status !== 'soon') return false
         if (timeFilter === 'upcoming' && status !== 'upcoming' && status !== 'soon') return false
-        if (timeFilter === 'past' && status !== 'past') return false
+        if (timeFilter === 'just_ended' && status !== 'just_ended') return false
+        if (timeFilter === 'past' && status !== 'past' && status !== 'just_ended') return false
       }
 
       return true
@@ -131,7 +137,8 @@ export default function Headcount() {
       now: dateFiltered.filter(s => getSessionStatus(s) === 'now').length,
       soon: dateFiltered.filter(s => getSessionStatus(s) === 'soon').length,
       upcoming: dateFiltered.filter(s => getSessionStatus(s) === 'upcoming' || getSessionStatus(s) === 'soon').length,
-      past: dateFiltered.filter(s => getSessionStatus(s) === 'past').length,
+      just_ended: dateFiltered.filter(s => getSessionStatus(s) === 'just_ended').length,
+      past: dateFiltered.filter(s => getSessionStatus(s) === 'past' || getSessionStatus(s) === 'just_ended').length,
       all: dateFiltered.length
     }
   }, [sessions, selectedDate, currentTime])
@@ -204,6 +211,7 @@ export default function Headcount() {
   const getStatusBadge = (status) => {
     const styles = {
       now: 'bg-green-500 text-white animate-pulse',
+      just_ended: 'bg-orange-500 text-white',
       soon: 'bg-amber-500 text-white',
       upcoming: 'bg-blue-500 text-white',
       past: 'bg-slate-400 text-white',
@@ -211,6 +219,7 @@ export default function Headcount() {
     }
     const labels = {
       now: 'LIVE NOW',
+      just_ended: 'Just Ended',
       soon: 'Starting Soon',
       upcoming: 'Upcoming',
       past: 'Ended',
@@ -342,6 +351,7 @@ export default function Headcount() {
           <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {[
               { value: 'now', label: 'Happening Now', icon: '🔴', count: sessionCounts.now },
+              { value: 'just_ended', label: 'Just Ended', icon: '🏁', count: sessionCounts.just_ended },
               { value: 'soon', label: 'Starting Soon', icon: '⏰', count: sessionCounts.soon },
               { value: 'upcoming', label: 'Upcoming', icon: '📅', count: sessionCounts.upcoming },
               { value: 'past', label: 'Past', icon: '✓', count: sessionCounts.past },
@@ -388,6 +398,7 @@ export default function Headcount() {
                   key={session.id}
                   className={`bg-white/5 backdrop-blur border rounded-xl overflow-hidden transition-all hover:bg-white/10 ${
                     status === 'now' ? 'border-green-500/50 ring-1 ring-green-500/30' :
+                    status === 'just_ended' ? 'border-orange-500/50 ring-1 ring-orange-500/30' :
                     status === 'soon' ? 'border-amber-500/50' :
                     'border-white/10'
                   }`}
