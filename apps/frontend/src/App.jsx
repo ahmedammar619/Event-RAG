@@ -8,6 +8,7 @@ import useAnalytics from './hooks/useAnalytics'
 import Landing from './pages/Public/Landing'
 import Register from './pages/Public/Register'
 import Lookup from './pages/Public/Lookup'
+import Headcount from './pages/Public/Headcount'
 
 // Admin pages
 import AdminLogin from './pages/Admin/Login'
@@ -90,6 +91,7 @@ function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/register" element={<Register />} />
       <Route path="/lookup" element={<Lookup />} />
+      <Route path="/headcount" element={<Headcount />} />
 
       {/* Admin Routes */}
       <Route path="/admin/login" element={<AdminLogin />} />

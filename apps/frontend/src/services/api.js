@@ -146,3 +146,11 @@ export const speakersService = {
   },
   removeFile: (id) => api.delete(`/speakers/${id}/file`)
 }
+
+export const headcountService = {
+  getSessions: (params) => api.get('/headcount/sessions', { params }),
+  getRooms: () => api.get('/headcount/rooms'),
+  getDates: () => api.get('/headcount/dates'),
+  updateHeadcount: (id, data) => api.patch(`/headcount/sessions/${id}`, data),
+  updateCapacity: (id, data) => api.patch(`/headcount/sessions/${id}/capacity`, data)
+}

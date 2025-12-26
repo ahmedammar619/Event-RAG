@@ -9,6 +9,7 @@ import analyticsRoutes from './analytics.js';
 import visitorsRoutes from './visitors.js';
 import aiRoutes from './ai.js';
 import speakersRoutes from './speakers.js';
+import headcountRoutes from './headcount.js';
 
 export default async function routes(fastify, options) {
   fastify.register(adminRoutes, { prefix: '/admin' });
@@ -22,4 +23,5 @@ export default async function routes(fastify, options) {
   fastify.register(visitorsRoutes, { prefix: '/visitors' });
   fastify.register(aiRoutes, { prefix: '/ai' });
   fastify.register(speakersRoutes, { prefix: '/speakers' });
+  fastify.register(headcountRoutes, { prefix: '/headcount' });
 }
