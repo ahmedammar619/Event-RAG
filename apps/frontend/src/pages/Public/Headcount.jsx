@@ -45,18 +45,8 @@ export default function Headcount() {
       setRooms(roomsRes.data.data)
       setDates(datesRes.data.data)
 
-      // Auto-select today's date if available
-      const today = new Date().toISOString().split('T')[0]
-      const todayExists = datesRes.data.data.some(d => {
-        const dateStr = typeof d === 'string' ? d : d.toISOString?.().split('T')[0]
-        return dateStr === today
-      })
-      if (todayExists) {
-        setSelectedDate(today)
-      } else if (datesRes.data.data.length > 0) {
-        const firstDate = datesRes.data.data[0]
-        setSelectedDate(typeof firstDate === 'string' ? firstDate.split('T')[0] : firstDate)
-      }
+      // Don't auto-select a date - let user see all sessions by default
+      // They can filter by date if needed
     } catch (err) {
       setError('Failed to load sessions')
       console.error(err)
