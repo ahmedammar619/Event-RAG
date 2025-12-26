@@ -83,6 +83,7 @@ export const moderatorsService = {
   getAll: () => api.get('/moderators'),
   getById: (id) => api.get(`/moderators/${id}`),
   getByEmail: (email) => api.get(`/moderators/by-email/${encodeURIComponent(email)}`),
+  getByPhone: (phone) => api.get(`/moderators/by-phone/${encodeURIComponent(phone)}`),
   register: (data) => api.post('/moderators/register', data),
   update: (id, data) => api.put(`/moderators/${id}`, data),
   delete: (id) => api.delete(`/moderators/${id}`)

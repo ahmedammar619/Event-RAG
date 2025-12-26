@@ -1,0 +1,494 @@
+{
+  "version": "6.0",
+  "nxVersion": "17.3.2",
+  "deps": {
+    "nx": "^17.2.0"
+  },
+  "pathMappings": {},
+  "nxJsonPlugins": [],
+  "fileMap": {
+    "projectFileMap": {
+      "backend": [
+        {
+          "file": "apps/backend/Dockerfile",
+          "hash": "2048028559775537301"
+        },
+        {
+          "file": "apps/backend/Dockerfile.dev",
+          "hash": "11168936112273654024"
+        },
+        {
+          "file": "apps/backend/nodemon.json",
+          "hash": "4637642506190792738"
+        },
+        {
+          "file": "apps/backend/package.json",
+          "hash": "8237342748930620202",
+          "deps": [
+            "npm:@fastify/cors",
+            "npm:@fastify/jwt",
+            "npm:bcrypt",
+            "npm:csv-parse",
+            "npm:csv-stringify",
+            "npm:dotenv",
+            "npm:fastify",
+            "npm:fastify-plugin",
+            "npm:franc-min",
+            "npm:pg",
+            "npm:nodemon"
+          ]
+        },
+        {
+          "file": "apps/backend/scripts/import-sessions-rag.js",
+          "hash": "6858855996222786950"
+        },
+        {
+          "file": "apps/backend/scripts/import-sessions.js",
+          "hash": "18241909346899501165"
+        },
+        {
+          "file": "apps/backend/scripts/migrate-rag-v2.js",
+          "hash": "17634005656471531630"
+        },
+        {
+          "file": "apps/backend/scripts/migrate-rag-v3.js",
+          "hash": "15804323661375448803"
+        },
+        {
+          "file": "apps/backend/scripts/migrate-rag.js",
+          "hash": "2482939585839830033"
+        },
+        {
+          "file": "apps/backend/scripts/migrate.js",
+          "hash": "3123446675187222808"
+        },
+        {
+          "file": "apps/backend/scripts/regenerate-embeddings.js",
+          "hash": "8660434661440537720"
+        },
+        {
+          "file": "apps/backend/scripts/translate-sessions.js",
+          "hash": "3537891364654117781"
+        },
+        {
+          "file": "apps/backend/scripts/translate-titles.js",
+          "hash": "18225590543663228776"
+        },
+        {
+          "file": "apps/backend/src/app.js",
+          "hash": "18239006019583905874"
+        },
+        {
+          "file": "apps/backend/src/plugins/auth.js",
+          "hash": "10177646097427111195"
+        },
+        {
+          "file": "apps/backend/src/plugins/db.js",
+          "hash": "16510339624071288414"
+        },
+        {
+          "file": "apps/backend/src/plugins/ragDb.js",
+          "hash": "7465887147700744703"
+        },
+        {
+          "file": "apps/backend/src/routes/admin.js",
+          "hash": "12359192143460484682"
+        },
+        {
+          "file": "apps/backend/src/routes/ai.js",
+          "hash": "4355373859372784077"
+        },
+        {
+          "file": "apps/backend/src/routes/analytics.js",
+          "hash": "4447864161173313196"
+        },
+        {
+          "file": "apps/backend/src/routes/assignments.js",
+          "hash": "7839711468305868282"
+        },
+        {
+          "file": "apps/backend/src/routes/availability.js",
+          "hash": "9538341829979243481"
+        },
+        {
+          "file": "apps/backend/src/routes/days.js",
+          "hash": "382165150021197609"
+        },
+        {
+          "file": "apps/backend/src/routes/index.js",
+          "hash": "18105539490187324434"
+        },
+        {
+          "file": "apps/backend/src/routes/moderators.js",
+          "hash": "14355341149778323462"
+        },
+        {
+          "file": "apps/backend/src/routes/rooms.js",
+          "hash": "8320716128810694313"
+        },
+        {
+          "file": "apps/backend/src/routes/sessions.js",
+          "hash": "2722403083116016713"
+        },
+        {
+          "file": "apps/backend/src/routes/visitors.js",
+          "hash": "15272603574553845779"
+        },
+        {
+          "file": "apps/backend/src/services/aiSettingsService.js",
+          "hash": "4121239685611056903"
+        },
+        {
+          "file": "apps/backend/src/services/assignmentService.js",
+          "hash": "2815382868835978447"
+        },
+        {
+          "file": "apps/backend/src/services/embeddingService.js",
+          "hash": "1097253283385025604"
+        },
+        {
+          "file": "apps/backend/src/services/languageService.js",
+          "hash": "5362095957084115245"
+        },
+        {
+          "file": "apps/backend/src/services/llmService.js",
+          "hash": "9940736592639527163"
+        },
+        {
+          "file": "apps/backend/src/services/queryParserService.js",
+          "hash": "3993327953097650627"
+        },
+        {
+          "file": "apps/backend/src/services/ragService.js",
+          "hash": "12210359289601310108"
+        },
+        {
+          "file": "apps/backend/src/utils/responses.js",
+          "hash": "17579009297421607725"
+        }
+      ],
+      "frontend": [
+        {
+          "file": "apps/frontend/.env.example",
+          "hash": "5820116653618589876"
+        },
+        {
+          "file": "apps/frontend/Dockerfile",
+          "hash": "6466955912150499608"
+        },
+        {
+          "file": "apps/frontend/Dockerfile.dev",
+          "hash": "11675562491467591273"
+        },
+        {
+          "file": "apps/frontend/index.html",
+          "hash": "6775364847390986366"
+        },
+        {
+          "file": "apps/frontend/nginx.conf",
+          "hash": "12123586509447528565"
+        },
+        {
+          "file": "apps/frontend/package.json",
+          "hash": "13646892032271180063",
+          "deps": [
+            "npm:axios",
+            "npm:react",
+            "npm:react-dom",
+            "npm:react-router-dom",
+            "npm:@vitejs/plugin-react",
+            "npm:autoprefixer",
+            "npm:postcss",
+            "npm:vite"
+          ]
+        },
+        {
+          "file": "apps/frontend/postcss.config.js",
+          "hash": "1121830044826443979"
+        },
+        {
+          "file": "apps/frontend/public/favicon.svg",
+          "hash": "2261184588449736570"
+        },
+        {
+          "file": "apps/frontend/public/logo-text.png",
+          "hash": "1829273925536717286"
+        },
+        {
+          "file": "apps/frontend/public/logo.png",
+          "hash": "15321120506717985487"
+        },
+        {
+          "file": "apps/frontend/public/logo2.png",
+          "hash": "18047271281531464567"
+        },
+        {
+          "file": "apps/frontend/public/logo3.png",
+          "hash": "4920431631794061688"
+        },
+        {
+          "file": "apps/frontend/public/mascon-logo.png",
+          "hash": "5075218529666543570"
+        },
+        {
+          "file": "apps/frontend/public/og-image.png",
+          "hash": "15031991194043347805"
+        },
+        {
+          "file": "apps/frontend/public/robots.txt",
+          "hash": "4207947645108754827"
+        },
+        {
+          "file": "apps/frontend/public/super-adorable-font/SuperAdorable-MAvyp.ttf",
+          "hash": "15366163473204605370"
+        },
+        {
+          "file": "apps/frontend/public/super-adorable-font/info.txt",
+          "hash": "11548652769850295684"
+        },
+        {
+          "file": "apps/frontend/src/App.jsx",
+          "hash": "9350689356546290869"
+        },
+        {
+          "file": "apps/frontend/src/components/common/Footer.jsx",
+          "hash": "17968317064235680994"
+        },
+        {
+          "file": "apps/frontend/src/components/common/Header.jsx",
+          "hash": "2425082669165156102"
+        },
+        {
+          "file": "apps/frontend/src/components/explore/ResultCountSelector.jsx",
+          "hash": "11481649277637772647"
+        },
+        {
+          "file": "apps/frontend/src/components/explore/SessionCard.jsx",
+          "hash": "4627751866164242990"
+        },
+        {
+          "file": "apps/frontend/src/components/layout/AdminLayout.jsx",
+          "hash": "11496600120398817525"
+        },
+        {
+          "file": "apps/frontend/src/components/layout/ModeratorLayout.jsx",
+          "hash": "16623367576182484607"
+        },
+        {
+          "file": "apps/frontend/src/context/AuthContext.jsx",
+          "hash": "2635250724919882613"
+        },
+        {
+          "file": "apps/frontend/src/context/ModeratorContext.jsx",
+          "hash": "1019576300375618005"
+        },
+        {
+          "file": "apps/frontend/src/context/ToastContext.jsx",
+          "hash": "9421993454445094483"
+        },
+        {
+          "file": "apps/frontend/src/context/VisitorContext.jsx",
+          "hash": "9724954935013566123"
+        },
+        {
+          "file": "apps/frontend/src/hooks/useAnalytics.js",
+          "hash": "79686729096697938"
+        },
+        {
+          "file": "apps/frontend/src/index.css",
+          "hash": "4781281332207579975"
+        },
+        {
+          "file": "apps/frontend/src/main.jsx",
+          "hash": "11139792785679190244"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/AISettings.jsx",
+          "hash": "16423739165485386326"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Analytics.jsx",
+          "hash": "5080685007030553907"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Assignments.jsx",
+          "hash": "6846009473616972843"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Dashboard.jsx",
+          "hash": "16636484031477568484"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/EventDays.jsx",
+          "hash": "5296899294154551679"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Export.jsx",
+          "hash": "12259911135291550826"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Login.jsx",
+          "hash": "3405068710361974703"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Moderators.jsx",
+          "hash": "1133654988342484896"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Rooms.jsx",
+          "hash": "15967156439054825621"
+        },
+        {
+          "file": "apps/frontend/src/pages/Admin/Sessions.jsx",
+          "hash": "2541622402057290639"
+        },
+        {
+          "file": "apps/frontend/src/pages/Moderator/Schedule.jsx",
+          "hash": "13356288755265142190"
+        },
+        {
+          "file": "apps/frontend/src/pages/Moderator/Settings.jsx",
+          "hash": "14445929603041566293"
+        },
+        {
+          "file": "apps/frontend/src/pages/Public/Landing.jsx",
+          "hash": "14654264046537379452"
+        },
+        {
+          "file": "apps/frontend/src/pages/Public/Lookup.jsx",
+          "hash": "9896468515631029077"
+        },
+        {
+          "file": "apps/frontend/src/pages/Public/Register.jsx",
+          "hash": "10049812666582337302"
+        },
+        {
+          "file": "apps/frontend/src/pages/Visitor/Explore.jsx",
+          "hash": "17266714533744378633"
+        },
+        {
+          "file": "apps/frontend/src/pages/Visitor/Login.jsx",
+          "hash": "11640919499925660715"
+        },
+        {
+          "file": "apps/frontend/src/pages/Visitor/Register.jsx",
+          "hash": "15676747099249613460"
+        },
+        {
+          "file": "apps/frontend/src/services/api.js",
+          "hash": "11657830266933899259"
+        },
+        {
+          "file": "apps/frontend/tailwind.config.js",
+          "hash": "6811667593392547071"
+        },
+        {
+          "file": "apps/frontend/vite.config.js",
+          "hash": "9495699757623941944"
+        }
+      ]
+    },
+    "nonProjectFiles": [
+      {
+        "file": ".dockerignore",
+        "hash": "900586270743177664"
+      },
+      {
+        "file": ".env.example",
+        "hash": "2763630892185674953"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "18249666785418702749"
+      },
+      {
+        "file": "LICENSE",
+        "hash": "12649885980860800067"
+      },
+      {
+        "file": "README.md",
+        "hash": "7741841681403665557"
+      },
+      {
+        "file": "context/algorithm.md",
+        "hash": "17368091140575018549"
+      },
+      {
+        "file": "context/api.md",
+        "hash": "15669778017905283046"
+      },
+      {
+        "file": "context/backend.md",
+        "hash": "12929757882680162939"
+      },
+      {
+        "file": "context/database.md",
+        "hash": "10868488614430411654"
+      },
+      {
+        "file": "context/deployment.md",
+        "hash": "1761604747978681819"
+      },
+      {
+        "file": "context/development.md",
+        "hash": "9898953793232045623"
+      },
+      {
+        "file": "context/features.md",
+        "hash": "1576990335767095534"
+      },
+      {
+        "file": "context/frontend.md",
+        "hash": "16564175597789983634"
+      },
+      {
+        "file": "context/overview.md",
+        "hash": "11970099604118462109"
+      },
+      {
+        "file": "context/rag-implementation.md",
+        "hash": "14102484744939120112"
+      },
+      {
+        "file": "context/styling.md",
+        "hash": "4458251858204666600"
+      },
+      {
+        "file": "context/user-flows.md",
+        "hash": "14006571460519418790"
+      },
+      {
+        "file": "dev.sh",
+        "hash": "5916073367023173704"
+      },
+      {
+        "file": "docker-compose.dev.yml",
+        "hash": "4104591884849732635"
+      },
+      {
+        "file": "docker-compose.yml",
+        "hash": "15447415329492309732"
+      },
+      {
+        "file": "nx.json",
+        "hash": "9946635288958184231"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "9602423271782184946"
+      },
+      {
+        "file": "package.json",
+        "hash": "14482960642255318128"
+      },
+      {
+        "file": "railway.toml",
+        "hash": "1836621443109274588"
+      },
+      {
+        "file": "whova.html",
+        "hash": "16202645876931992488"
+      }
+    ]
+  }
+}

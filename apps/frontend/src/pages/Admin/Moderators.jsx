@@ -8,6 +8,49 @@ export default function Moderators() {
   const [moderators, setModerators] = useState([])
   const [expandedId, setExpandedId] = useState(null)
   const [expandedData, setExpandedData] = useState(null)
+  const [editingPhoneId, setEditingPhoneId] = useState(null)
+  const [editingPhone, setEditingPhone] = useState('')
+
+  // Format phone number as user types: (XXX) XXX-XXXX
+  const formatPhoneNumber = (value) => {
+    const digits = value.replace(/\D/g, '')
+    const limited = digits.slice(0, 10)
+    if (limited.length === 0) return ''
+    if (limited.length <= 3) return `(${limited}`
+    if (limited.length <= 6) return `(${limited.slice(0, 3)}) ${limited.slice(3)}`
+    return `(${limited.slice(0, 3)}) ${limited.slice(3, 6)}-${limited.slice(6)}`
+  }
+
+  const handlePhoneEdit = (mod) => {
+    setEditingPhoneId(mod.id)
+    setEditingPhone(mod.phone || '')
+  }
+
+  const handlePhoneChange = (e) => {
+    const formatted = formatPhoneNumber(e.target.value)
+    setEditingPhone(formatted)
+  }
+
+  const handlePhoneSave = async (modId) => {
+    try {
+      await moderatorsService.update(modId, { phone: editingPhone })
+      toast.success('Phone number updated')
+      loadModerators()
+      if (expandedId === modId && expandedData) {
+        setExpandedData({ ...expandedData, phone: editingPhone })
+      }
+    } catch (err) {
+      toast.error('Failed to update phone number')
+    } finally {
+      setEditingPhoneId(null)
+      setEditingPhone('')
+    }
+  }
+
+  const handlePhoneCancel = () => {
+    setEditingPhoneId(null)
+    setEditingPhone('')
+  }
 
   useEffect(() => {
     loadModerators()
@@ -133,7 +176,41 @@ export default function Moderators() {
                       <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-3">Contact Info</h4>
                       <div className="space-y-2 text-sm">
                         <p><span className="text-slate-500">Email:</span> {expandedData.email}</p>
-                        <p><span className="text-slate-500">Phone:</span> {expandedData.phone || 'Not provided'}</p>
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-500">Phone:</span>
+                          {editingPhoneId === expandedData.id ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="tel"
+                                className="form-input py-1 px-2 text-sm w-36"
+                                value={editingPhone}
+                                onChange={handlePhoneChange}
+                                placeholder="(555) 123-4567"
+                                autoFocus
+                              />
+                              <button
+                                className="btn btn-sm btn-primary py-1 px-2"
+                                onClick={() => handlePhoneSave(expandedData.id)}
+                              >
+                                Save
+                              </button>
+                              <button
+                                className="btn btn-sm btn-outline py-1 px-2"
+                                onClick={handlePhoneCancel}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <span
+                              className="cursor-pointer text-blue-600 hover:underline"
+                              onClick={() => handlePhoneEdit(expandedData)}
+                              title="Click to edit phone number"
+                            >
+                              {expandedData.phone || 'Not provided (click to add)'}
+                            </span>
+                          )}
+                        </div>
                         <p><span className="text-slate-500">Preference:</span> {expandedData.schedule_preference?.replace('_', ' ') || 'None'}</p>
                       </div>
                     </div>

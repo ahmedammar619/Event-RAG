@@ -78,7 +78,7 @@ export default function Register() {
 
       if (err.response?.data?.error?.code === 'CONFLICT') {
         try {
-          await login(form.email)
+          await login(form.phone)
           toast.info('You were already registered. Welcome back!')
           navigate('/portal/availability')
         } catch (e) {
@@ -145,7 +145,7 @@ export default function Register() {
             </form>
 
             <p className="text-center mt-6 text-sm text-slate-500">
-              Already registered? <Link to="/lookup">Enter your email</Link> to update your availability.
+              Already registered? <Link to="/lookup">Enter your phone number</Link> to update your availability.
             </p>
           </div>
         </div>

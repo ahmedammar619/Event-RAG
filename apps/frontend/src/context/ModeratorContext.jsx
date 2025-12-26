@@ -28,8 +28,8 @@ export function ModeratorProvider({ children }) {
     }
   }
 
-  const loginModerator = async (email) => {
-    const response = await moderatorsService.getByEmail(email)
+  const loginModerator = async (phone) => {
+    const response = await moderatorsService.getByPhone(phone)
     const mod = response.data.data
 
     localStorage.setItem('moderator_id', mod.id)

@@ -147,6 +147,42 @@ export default async function moderatorsRoutes(fastify, options) {
     });
   });
 
+  // GET /api/moderators/by-phone/:phone
+  fastify.get('/by-phone/:phone', async (request, reply) => {
+    const { phone } = request.params;
+
+    // Normalize phone number - extract just digits for comparison
+    const phoneDigits = phone.replace(/\D/g, '');
+
+    if (phoneDigits.length < 10) {
+      throw validationError('Invalid phone number format');
+    }
+
+    // Search by phone, comparing normalized digits
+    const result = await db.query(
+      `SELECT * FROM moderators WHERE REGEXP_REPLACE(phone, '\\D', '', 'g') = $1`,
+      [phoneDigits]
+    );
+
+    if (result.rows.length === 0) {
+      throw notFound('Moderator');
+    }
+
+    const moderator = result.rows[0];
+
+    // Generate token for returning moderator
+    const token = fastify.jwt.sign({
+      id: moderator.id,
+      email: moderator.email,
+      role: 'moderator'
+    });
+
+    return success({
+      ...moderator,
+      token
+    });
+  });
+
   // PUT /api/moderators/:id
   fastify.put('/:id', async (request, reply) => {
     const { id } = request.params;
