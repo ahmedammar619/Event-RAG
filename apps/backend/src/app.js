@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 import dotenv from 'dotenv';
 import pg from 'pg';
 import { dbPlugin } from './plugins/db.js';
@@ -113,6 +114,12 @@ await fastify.register(cors, {
 
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET || 'dev-secret-change-in-production'
+});
+
+await fastify.register(multipart, {
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB max
+  }
 });
 
 await fastify.register(dbPlugin);

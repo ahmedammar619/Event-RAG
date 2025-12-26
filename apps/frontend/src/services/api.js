@@ -132,3 +132,17 @@ export const aiService = {
   getHealth: () => api.get('/ai/health'),
   getAnalytics: (days) => api.get('/ai/analytics', { params: { days } })
 }
+
+export const speakersService = {
+  getAll: () => api.get('/speakers'),
+  getById: (id) => api.get(`/speakers/${id}`),
+  update: (id, data) => api.put(`/speakers/${id}`, data),
+  uploadFile: (id, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return api.post(`/speakers/${id}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+  },
+  removeFile: (id) => api.delete(`/speakers/${id}/file`)
+}

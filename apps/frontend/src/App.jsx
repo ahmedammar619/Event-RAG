@@ -21,6 +21,7 @@ import Assignments from './pages/Admin/Assignments'
 import Export from './pages/Admin/Export'
 import Analytics from './pages/Admin/Analytics'
 import AISettings from './pages/Admin/AISettings'
+import Speakers from './pages/Admin/Speakers'
 
 // Moderator pages
 import ModeratorLayout from './components/layout/ModeratorLayout'
@@ -109,6 +110,7 @@ function App() {
         <Route path="export" element={<Export />} />
         <Route path="analytics" element={<Analytics />} />
         <Route path="ai-settings" element={<AISettings />} />
+        <Route path="speakers" element={<Speakers />} />
       </Route>
 
       {/* Moderator Portal Routes */}

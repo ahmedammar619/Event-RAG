@@ -18,6 +18,7 @@ export default function AdminLayout() {
     { to: '/admin/days', label: 'Event Days', icon: '📅' },
     { to: '/admin/rooms', label: 'Rooms', icon: '🚪' },
     { to: '/admin/sessions', label: 'Sessions', icon: '📋' },
+    { to: '/admin/speakers', label: 'Speakers', icon: '🎤' },
     { to: '/admin/moderators', label: 'Moderators', icon: '👥' },
     { to: '/admin/assignments', label: 'Assignments', icon: '✅' },
     { to: '/admin/export', label: 'Export Data', icon: '📥' },
