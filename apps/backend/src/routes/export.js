@@ -47,24 +47,33 @@ export default async function exportRoutes(fastify, options) {
       ORDER BY ed.date, s.start_time, r.name
     `);
 
-    // Get sessions from RAG DB with headcount data
-    const ragDbSessions = await ragDb.query(`
-      SELECT
-        id,
-        title,
-        date,
-        time_start,
-        time_end,
-        room,
-        speakers,
-        headcount as rag_headcount,
-        headcount_percentage as rag_headcount_percentage,
-        room_capacity,
-        track,
-        session_type
-      FROM sessions
-      ORDER BY date, time_start
-    `);
+    // Get sessions from RAG DB with headcount data (if available)
+    let ragDbSessions = { rows: [] };
+    if (ragDb) {
+      try {
+        ragDbSessions = await ragDb.query(`
+          SELECT
+            id,
+            title,
+            date,
+            time_start,
+            time_end,
+            room,
+            speakers,
+            headcount as rag_headcount,
+            headcount_percentage as rag_headcount_percentage,
+            room_capacity,
+            track,
+            session_type
+          FROM sessions
+          ORDER BY date, time_start
+        `);
+      } catch (ragError) {
+        fastify.log.warn('RAG database query failed:', ragError.message);
+      }
+    } else {
+      fastify.log.warn('RAG database not available, exporting main DB data only');
+    }
 
     // Create a map of RAG sessions by title for quick lookup
     const ragSessionMap = new Map();
@@ -248,13 +257,20 @@ export default async function exportRoutes(fastify, options) {
       FROM sessions
     `);
 
-    // Get counts from RAG DB
-    const ragStats = await ragDb.query(`
-      SELECT
-        COUNT(*) as total_sessions,
-        COUNT(CASE WHEN headcount IS NOT NULL OR headcount_percentage IS NOT NULL THEN 1 END) as with_headcount
-      FROM sessions
-    `);
+    // Get counts from RAG DB (if available)
+    let ragStats = { rows: [{ total_sessions: 0, with_headcount: 0 }] };
+    if (ragDb) {
+      try {
+        ragStats = await ragDb.query(`
+          SELECT
+            COUNT(*) as total_sessions,
+            COUNT(CASE WHEN headcount IS NOT NULL OR headcount_percentage IS NOT NULL THEN 1 END) as with_headcount
+          FROM sessions
+        `);
+      } catch (error) {
+        fastify.log.warn('RAG database query failed for stats:', error.message);
+      }
+    }
 
     return success({
       main_db: {
