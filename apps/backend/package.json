@@ -26,7 +26,8 @@
     "fastify": "^4.24.3",
     "fastify-plugin": "^4.5.1",
     "franc-min": "^6.2.0",
-    "pg": "^8.11.3"
+    "pg": "^8.11.3",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"

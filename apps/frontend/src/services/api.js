@@ -154,3 +154,8 @@ export const headcountService = {
   updateHeadcount: (id, data) => api.patch(`/headcount/sessions/${id}`, data),
   updateCapacity: (id, data) => api.patch(`/headcount/sessions/${id}/capacity`, data)
 }
+
+export const exportService = {
+  getHeadcountStats: () => api.get('/export/headcount-stats'),
+  downloadHeadcountReport: () => api.get('/export/headcount-report', { responseType: 'blob' })
+}
