@@ -325,13 +325,16 @@ export default function Sessions() {
                               </div>
                             </div>
                           ) : (
-                            <div
+                            <button
                               onClick={() => startEditingHeadcount(session)}
-                              className="cursor-pointer hover:bg-slate-100 rounded px-2 py-1 -mx-2 -my-1"
+                              className="flex items-center gap-1.5 cursor-pointer hover:bg-blue-50 border border-dashed border-slate-300 hover:border-blue-400 rounded px-2 py-1 transition-colors group"
                               title="Click to edit headcount"
                             >
                               {getHeadcountDisplay()}
-                            </div>
+                              <svg className="w-3.5 h-3.5 text-slate-400 group-hover:text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                              </svg>
+                            </button>
                           )}
                         </td>
                         <td>
