@@ -84,6 +84,7 @@ export default async function assignmentsRoutes(fastify, options) {
         s.end_time,
         s.headcount,
         s.headcount_percentage,
+        s.speaker as session_speakers,
         ed.date,
         r.name as room_name,
         r.capacity as room_capacity
@@ -95,7 +96,22 @@ export default async function assignmentsRoutes(fastify, options) {
       ORDER BY ed.date, s.start_time
     `, [id]);
 
-    return success(result.rows);
+    // For each assignment, fetch speaker details with PDF links
+    const assignments = await Promise.all(result.rows.map(async (row) => {
+      if (row.session_speakers) {
+        const speakerNames = row.session_speakers.split(';').map(s => s.trim());
+        const speakersResult = await db.query(
+          `SELECT name, file_url FROM speakers WHERE name = ANY($1)`,
+          [speakerNames]
+        );
+        row.speakers = speakersResult.rows;
+      } else {
+        row.speakers = [];
+      }
+      return row;
+    }));
+
+    return success(assignments);
   });
 
   // POST /api/assignments/auto

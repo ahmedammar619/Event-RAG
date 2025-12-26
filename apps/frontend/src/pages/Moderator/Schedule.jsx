@@ -182,6 +182,36 @@ export default function Schedule() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
                               <h3 className="font-semibold text-slate-900 leading-tight">{a.session_name}</h3>
+
+                              {/* Speakers */}
+                              {a.speakers && a.speakers.length > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 mt-2">
+                                  {a.speakers.map((speaker, idx) => (
+                                    speaker.file_url ? (
+                                      <a
+                                        key={idx}
+                                        href={speaker.file_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-700 text-xs font-medium rounded-lg hover:bg-emerald-100 transition-colors"
+                                      >
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                        {speaker.name}
+                                      </a>
+                                    ) : (
+                                      <span
+                                        key={idx}
+                                        className="inline-flex items-center px-2 py-1 bg-slate-100 text-slate-600 text-xs font-medium rounded-lg"
+                                      >
+                                        {speaker.name}
+                                      </span>
+                                    )
+                                  ))}
+                                </div>
+                              )}
+
                               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm">
                                 <span className="text-blue-600 font-medium">
                                   {formatTime(a.start_time)} - {formatTime(a.end_time)}
