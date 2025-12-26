@@ -145,7 +145,7 @@ export default function Register() {
             </form>
 
             <p className="text-center mt-6 text-sm text-slate-500">
-              Already registered? <Link to="/lookup">Enter your phone number</Link> to update your availability.
+              Already registered? <Link to="/lookup">Enter your phone number</Link> to access your assigned sessions or update your availability.
             </p>
           </div>
         </div>

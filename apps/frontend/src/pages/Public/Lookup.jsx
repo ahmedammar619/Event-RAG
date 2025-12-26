@@ -74,7 +74,7 @@ export default function Lookup() {
         <div className="w-full max-w-md">
           <div className="bg-white rounded-2xl p-8 shadow-lg border border-slate-200">
             <div className="text-center mb-6">
-              <h1 className="text-2xl font-semibold mb-2">Update Your Availability</h1>
+              <h1 className="text-2xl font-semibold mb-2"> Moderator Session Access</h1>
               <p className="text-slate-500">Enter your phone number to access your account</p>
             </div>
 
