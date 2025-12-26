@@ -99,7 +99,7 @@ export default async function exportRoutes(fastify, options) {
       if (session.main_headcount !== null) {
         finalHeadcount = session.main_headcount;
         headcountSource = 'main_db';
-      } else if (ragSession?.rag_headcount !== null) {
+      } else if (ragSession && ragSession.rag_headcount !== null) {
         finalHeadcount = ragSession.rag_headcount;
         headcountSource = 'rag_db';
       }
@@ -107,7 +107,7 @@ export default async function exportRoutes(fastify, options) {
       if (session.main_headcount_percentage !== null) {
         finalHeadcountPercentage = session.main_headcount_percentage;
         headcountSource = 'main_db';
-      } else if (ragSession?.rag_headcount_percentage !== null) {
+      } else if (ragSession && ragSession.rag_headcount_percentage !== null) {
         finalHeadcountPercentage = ragSession.rag_headcount_percentage;
         headcountSource = headcountSource === 'main_db' ? 'main_db' : 'rag_db';
       }
