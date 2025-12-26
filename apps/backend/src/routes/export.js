@@ -249,11 +249,11 @@ export default async function exportRoutes(fastify, options) {
   fastify.get('/headcount-stats', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
-    // Get counts from main DB
+    // Get counts from main DB (only count headcount > 0, not default 0 values)
     const mainStats = await db.query(`
       SELECT
         COUNT(*) as total_sessions,
-        COUNT(CASE WHEN headcount IS NOT NULL OR headcount_percentage IS NOT NULL THEN 1 END) as with_headcount
+        COUNT(CASE WHEN (headcount IS NOT NULL AND headcount > 0) OR (headcount_percentage IS NOT NULL AND headcount_percentage > 0) THEN 1 END) as with_headcount
       FROM sessions
     `);
 
@@ -264,7 +264,7 @@ export default async function exportRoutes(fastify, options) {
         ragStats = await ragDb.query(`
           SELECT
             COUNT(*) as total_sessions,
-            COUNT(CASE WHEN headcount IS NOT NULL OR headcount_percentage IS NOT NULL THEN 1 END) as with_headcount
+            COUNT(CASE WHEN (headcount IS NOT NULL AND headcount > 0) OR (headcount_percentage IS NOT NULL AND headcount_percentage > 0) THEN 1 END) as with_headcount
           FROM sessions
         `);
       } catch (error) {
