@@ -1,5 +1,16 @@
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx';
 import { success } from '../utils/responses.js';
+
+// Helper to format time values from database
+const formatTime = (time) => {
+  if (!time) return '';
+  if (typeof time === 'string') return time.slice(0, 5);
+  // Handle time objects
+  if (time.hours !== undefined) {
+    return `${String(time.hours).padStart(2, '0')}:${String(time.minutes || 0).padStart(2, '0')}`;
+  }
+  return String(time).slice(0, 5);
+};
 
 export default async function exportRoutes(fastify, options) {
   const { db, ragDb } = fastify;
@@ -8,6 +19,7 @@ export default async function exportRoutes(fastify, options) {
   fastify.get('/headcount-report', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
+    try {
     // Get sessions from main DB with all related data
     const mainDbSessions = await db.query(`
       SELECT
@@ -106,8 +118,8 @@ export default async function exportRoutes(fastify, options) {
       return {
         'Session Name': session.name,
         'Date': session.date ? new Date(session.date).toISOString().split('T')[0] : '',
-        'Start Time': session.start_time?.slice(0, 5) || '',
-        'End Time': session.end_time?.slice(0, 5) || '',
+        'Start Time': formatTime(session.start_time),
+        'End Time': formatTime(session.end_time),
         'Room': session.room_name || '',
         'Room Capacity': roomCapacity || '',
         'Speaker(s)': session.speaker || ragSession?.speakers || '',
@@ -138,8 +150,8 @@ export default async function exportRoutes(fastify, options) {
         return {
           'Session Name': session.title,
           'Date': session.date ? new Date(session.date).toISOString().split('T')[0] : '',
-          'Start Time': session.time_start?.slice(0, 5) || '',
-          'End Time': session.time_end?.slice(0, 5) || '',
+          'Start Time': formatTime(session.time_start),
+          'End Time': formatTime(session.time_end),
           'Room': session.room || '',
           'Room Capacity': roomCapacity || '',
           'Speaker(s)': session.speakers || '',
@@ -218,6 +230,10 @@ export default async function exportRoutes(fastify, options) {
       .header('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
       .header('Content-Disposition', `attachment; filename="headcount_report_${new Date().toISOString().split('T')[0]}.xlsx"`)
       .send(excelBuffer);
+    } catch (error) {
+      fastify.log.error('Headcount report error:', error);
+      throw error;
+    }
   });
 
   // GET /api/export/headcount-stats - Get quick stats for the export section
