@@ -20,6 +20,12 @@ export default function Sessions() {
     moderators_needed: 1
   })
 
+  // Headcount editing state
+  const [editingHeadcountId, setEditingHeadcountId] = useState(null)
+  const [headcountValue, setHeadcountValue] = useState('')
+  const [inputMode, setInputMode] = useState('percentage')
+  const [savingHeadcount, setSavingHeadcount] = useState(false)
+
   useEffect(() => {
     loadData()
   }, [])
@@ -112,6 +118,54 @@ export default function Sessions() {
     } catch (err) {
       toast.error('Failed to delete session')
     }
+  }
+
+  // Headcount editing functions
+  const startEditingHeadcount = (session) => {
+    setEditingHeadcountId(session.id)
+    if (session.headcount_percentage !== null && session.headcount_percentage !== undefined) {
+      setInputMode('percentage')
+      setHeadcountValue(session.headcount_percentage.toString())
+    } else if (session.headcount !== null && session.headcount !== undefined && session.headcount > 0) {
+      setInputMode('exact')
+      setHeadcountValue(session.headcount.toString())
+    } else {
+      setInputMode('percentage')
+      setHeadcountValue('')
+    }
+  }
+
+  const saveHeadcount = async (sessionId) => {
+    const value = parseInt(headcountValue)
+    if (isNaN(value) || value < 0) {
+      toast.error('Please enter a valid number')
+      return
+    }
+    if (inputMode === 'percentage' && value > 100) {
+      toast.error('Percentage cannot exceed 100')
+      return
+    }
+
+    setSavingHeadcount(true)
+    try {
+      const data = inputMode === 'percentage'
+        ? { headcount_percentage: value }
+        : { headcount: value }
+
+      await sessionsService.updateHeadcount(sessionId, data)
+      toast.success('Headcount saved!')
+      setEditingHeadcountId(null)
+      loadSessions()
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Failed to save headcount')
+    } finally {
+      setSavingHeadcount(false)
+    }
+  }
+
+  const cancelEditingHeadcount = () => {
+    setEditingHeadcountId(null)
+    setHeadcountValue('')
   }
 
   const formatDate = (dateStr) => {
@@ -218,7 +272,68 @@ export default function Sessions() {
                         <td>{formatDate(session.date)}</td>
                         <td>{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</td>
                         <td>{session.room_name || '-'}</td>
-                        <td>{getHeadcountDisplay()}</td>
+                        <td>
+                          {editingHeadcountId === session.id ? (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => setInputMode('percentage')}
+                                  className={`px-2 py-1 text-xs rounded ${inputMode === 'percentage' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}
+                                >
+                                  % Full
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setInputMode('exact')}
+                                  className={`px-2 py-1 text-xs rounded ${inputMode === 'exact' ? 'bg-blue-600 text-white' : 'bg-slate-200 text-slate-600'}`}
+                                >
+                                  Exact #
+                                </button>
+                              </div>
+                              <div className="flex gap-1 items-center">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={inputMode === 'percentage' ? 100 : undefined}
+                                  value={headcountValue}
+                                  onChange={(e) => setHeadcountValue(e.target.value)}
+                                  className="form-input w-20 py-1 text-sm"
+                                  placeholder={inputMode === 'percentage' ? '0-100' : 'Count'}
+                                />
+                                {inputMode === 'percentage' && <span className="text-xs text-slate-500">%</span>}
+                              </div>
+                              {inputMode === 'percentage' && headcountValue && session.room_capacity && (
+                                <div className="text-xs text-slate-500">
+                                  ~{Math.round((parseInt(headcountValue) / 100) * session.room_capacity)} people
+                                </div>
+                              )}
+                              <div className="flex gap-1">
+                                <button
+                                  onClick={() => saveHeadcount(session.id)}
+                                  disabled={savingHeadcount}
+                                  className="btn btn-primary btn-sm py-1 px-2 text-xs"
+                                >
+                                  {savingHeadcount ? '...' : 'Save'}
+                                </button>
+                                <button
+                                  onClick={cancelEditingHeadcount}
+                                  className="btn btn-outline btn-sm py-1 px-2 text-xs"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div
+                              onClick={() => startEditingHeadcount(session)}
+                              className="cursor-pointer hover:bg-slate-100 rounded px-2 py-1 -mx-2 -my-1"
+                              title="Click to edit headcount"
+                            >
+                              {getHeadcountDisplay()}
+                            </div>
+                          )}
+                        </td>
                         <td>
                           <span className={`badge ${session.assigned_moderators.length >= session.moderators_needed ? 'badge-success' : 'badge-warning'}`}>
                             {session.assigned_moderators.length}/{session.moderators_needed}
