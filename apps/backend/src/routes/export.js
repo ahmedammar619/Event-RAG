@@ -180,8 +180,14 @@ export default async function exportRoutes(fastify, options) {
     // Combine all data
     const allData = [...mergedData, ...ragOnlySessions];
 
+    // Filter to only include sessions with filled headcount data
+    const filledData = allData.filter(s =>
+      (s['Headcount (Exact)'] && s['Headcount (Exact)'] !== '' && s['Headcount (Exact)'] !== 0) ||
+      (s['Headcount (%)'] && s['Headcount (%)'] !== '' && s['Headcount (%)'] !== '0%')
+    );
+
     // Sort by date and time
-    allData.sort((a, b) => {
+    filledData.sort((a, b) => {
       if (a['Date'] !== b['Date']) {
         return a['Date'].localeCompare(b['Date']);
       }
@@ -192,7 +198,7 @@ export default async function exportRoutes(fastify, options) {
     const workbook = XLSX.utils.book_new();
 
     // Main data sheet
-    const worksheet = XLSX.utils.json_to_sheet(allData);
+    const worksheet = XLSX.utils.json_to_sheet(filledData);
 
     // Set column widths
     worksheet['!cols'] = [
@@ -219,12 +225,10 @@ export default async function exportRoutes(fastify, options) {
 
     // Create summary sheet
     const summary = [
-      { Metric: 'Total Sessions', Value: allData.length },
-      { Metric: 'Sessions with Headcount Data', Value: allData.filter(s => s['Headcount (Exact)'] || s['Headcount (%)']).length },
-      { Metric: 'Sessions without Headcount', Value: allData.filter(s => !s['Headcount (Exact)'] && !s['Headcount (%)']).length },
-      { Metric: 'Data from Main DB', Value: allData.filter(s => s['Headcount Source'] === 'main_db').length },
-      { Metric: 'Data from RAG DB', Value: allData.filter(s => s['Headcount Source'] === 'rag_db').length },
-      { Metric: 'Total Estimated Attendance', Value: allData.reduce((sum, s) => sum + (parseInt(s['Estimated Attendance']) || 0), 0) },
+      { Metric: 'Total Sessions with Headcount', Value: filledData.length },
+      { Metric: 'Data from Main DB', Value: filledData.filter(s => s['Headcount Source'] === 'main_db').length },
+      { Metric: 'Data from RAG DB', Value: filledData.filter(s => s['Headcount Source'] === 'rag_db').length },
+      { Metric: 'Total Estimated Attendance', Value: filledData.reduce((sum, s) => sum + (parseInt(s['Estimated Attendance']) || 0), 0) },
       { Metric: 'Report Generated', Value: new Date().toISOString() },
     ];
     const summarySheet = XLSX.utils.json_to_sheet(summary);
@@ -241,6 +245,78 @@ export default async function exportRoutes(fastify, options) {
       .send(excelBuffer);
     } catch (error) {
       fastify.log.error('Headcount report error:', error);
+      throw error;
+    }
+  });
+
+  // GET /api/export/filled-headcounts - Get all sessions with filled headcount data
+  fastify.get('/filled-headcounts', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      // Get sessions from main DB with headcount data
+      const result = await db.query(`
+        SELECT
+          s.id,
+          s.name,
+          s.start_time,
+          s.end_time,
+          s.headcount,
+          s.headcount_percentage,
+          s.speaker,
+          s.created_at,
+          ed.date,
+          r.name as room_name,
+          r.capacity as room_capacity,
+          COALESCE(
+            (SELECT json_agg(json_build_object('name', m.name, 'email', m.email))
+             FROM assignments a
+             JOIN moderators m ON a.moderator_id = m.id
+             WHERE a.session_id = s.id),
+            '[]'
+          ) as assigned_moderators
+        FROM sessions s
+        LEFT JOIN event_days ed ON s.event_day_id = ed.id
+        LEFT JOIN rooms r ON s.room_id = r.id
+        WHERE (s.headcount IS NOT NULL AND s.headcount > 0)
+           OR (s.headcount_percentage IS NOT NULL AND s.headcount_percentage > 0)
+        ORDER BY s.id DESC
+      `);
+
+      const filledHeadcounts = result.rows.map(session => {
+        const roomCapacity = session.room_capacity;
+        let estimatedHeadcount = null;
+        if (session.headcount_percentage !== null && roomCapacity) {
+          estimatedHeadcount = Math.round((session.headcount_percentage / 100) * roomCapacity);
+        }
+
+        const moderators = typeof session.assigned_moderators === 'string'
+          ? JSON.parse(session.assigned_moderators)
+          : session.assigned_moderators;
+
+        return {
+          id: session.id,
+          name: session.name,
+          date: session.date ? new Date(session.date).toISOString().split('T')[0] : '',
+          start_time: session.start_time,
+          end_time: session.end_time,
+          room_name: session.room_name || '',
+          room_capacity: roomCapacity || null,
+          speaker: session.speaker || '',
+          headcount: session.headcount,
+          headcount_percentage: session.headcount_percentage,
+          estimated_headcount: estimatedHeadcount || session.headcount || null,
+          assigned_moderators: moderators,
+          created_at: session.created_at
+        };
+      });
+
+      return success({
+        total: filledHeadcounts.length,
+        sessions: filledHeadcounts
+      });
+    } catch (error) {
+      fastify.log.error('Filled headcounts error:', error);
       throw error;
     }
   });

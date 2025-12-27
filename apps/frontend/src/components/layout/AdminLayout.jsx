@@ -21,6 +21,7 @@ export default function AdminLayout() {
     { to: '/admin/speakers', label: 'Speakers', icon: '🎤' },
     { to: '/admin/moderators', label: 'Moderators', icon: '👥' },
     { to: '/admin/assignments', label: 'Assignments', icon: '✅' },
+    { to: '/admin/headcounts', label: 'Headcounts', icon: '📈' },
     { to: '/admin/sync', label: 'Sync Data', icon: '🔄' },
     { to: '/admin/export', label: 'Export Data', icon: '📥' },
     { to: '/admin/ai-settings', label: 'AI Settings', icon: '🤖' }

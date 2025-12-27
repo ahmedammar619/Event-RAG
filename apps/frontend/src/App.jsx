@@ -24,6 +24,7 @@ import Analytics from './pages/Admin/Analytics'
 import AISettings from './pages/Admin/AISettings'
 import Speakers from './pages/Admin/Speakers'
 import Sync from './pages/Admin/Sync'
+import FilledHeadcounts from './pages/Admin/FilledHeadcounts'
 
 // Moderator pages
 import ModeratorLayout from './components/layout/ModeratorLayout'
@@ -115,6 +116,7 @@ function App() {
         <Route path="ai-settings" element={<AISettings />} />
         <Route path="speakers" element={<Speakers />} />
         <Route path="sync" element={<Sync />} />
+        <Route path="headcounts" element={<FilledHeadcounts />} />
       </Route>
 
       {/* Moderator Portal Routes */}

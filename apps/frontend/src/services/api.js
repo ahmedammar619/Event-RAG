@@ -157,7 +157,8 @@ export const headcountService = {
 
 export const exportService = {
   getHeadcountStats: () => api.get('/export/headcount-stats'),
-  downloadHeadcountReport: () => api.get('/export/headcount-report', { responseType: 'blob' })
+  downloadHeadcountReport: () => api.get('/export/headcount-report', { responseType: 'blob' }),
+  getFilledHeadcounts: () => api.get('/export/filled-headcounts')
 }
 
 export const syncService = {
