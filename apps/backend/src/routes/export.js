@@ -249,20 +249,20 @@ export default async function exportRoutes(fastify, options) {
     }
   });
 
-  // GET /api/export/filled-headcounts - Get all sessions with filled headcount data
+  // GET /api/export/filled-headcounts - Get all sessions with filled headcount data from both DBs
   fastify.get('/filled-headcounts', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     try {
-      // Get sessions from main DB with headcount data
-      const result = await db.query(`
+      // Get sessions from main DB with all related data
+      const mainDbSessions = await db.query(`
         SELECT
           s.id,
           s.name,
           s.start_time,
           s.end_time,
-          s.headcount,
-          s.headcount_percentage,
+          s.headcount as main_headcount,
+          s.headcount_percentage as main_headcount_percentage,
           s.speaker,
           s.created_at,
           ed.date,
@@ -278,16 +278,73 @@ export default async function exportRoutes(fastify, options) {
         FROM sessions s
         LEFT JOIN event_days ed ON s.event_day_id = ed.id
         LEFT JOIN rooms r ON s.room_id = r.id
-        WHERE (s.headcount IS NOT NULL AND s.headcount > 0)
-           OR (s.headcount_percentage IS NOT NULL AND s.headcount_percentage > 0)
         ORDER BY s.id DESC
       `);
 
-      const filledHeadcounts = result.rows.map(session => {
-        const roomCapacity = session.room_capacity;
+      // Get sessions from RAG DB with headcount data (if available)
+      let ragDbSessions = { rows: [] };
+      if (ragDb) {
+        try {
+          ragDbSessions = await ragDb.query(`
+            SELECT
+              id,
+              title,
+              date,
+              time_start,
+              time_end,
+              room,
+              speakers,
+              headcount as rag_headcount,
+              headcount_percentage as rag_headcount_percentage,
+              room_capacity,
+              track
+            FROM sessions
+            ORDER BY id DESC
+          `);
+        } catch (ragError) {
+          fastify.log.warn('RAG database query failed:', ragError.message);
+        }
+      }
+
+      // Create a map of RAG sessions by title for quick lookup
+      const ragSessionMap = new Map();
+      for (const session of ragDbSessions.rows) {
+        const normalizedTitle = session.title?.toLowerCase().trim();
+        if (normalizedTitle) {
+          ragSessionMap.set(normalizedTitle, session);
+        }
+      }
+
+      // Merge data from both databases
+      const mergedData = mainDbSessions.rows.map(session => {
+        const normalizedName = session.name?.toLowerCase().trim();
+        const ragSession = ragSessionMap.get(normalizedName);
+
+        // Determine final headcount values (priority: main DB > RAG DB)
+        let finalHeadcount = null;
+        let finalHeadcountPercentage = null;
+        let headcountSource = 'none';
+
+        if (session.main_headcount !== null && session.main_headcount > 0) {
+          finalHeadcount = session.main_headcount;
+          headcountSource = 'main_db';
+        } else if (ragSession && ragSession.rag_headcount !== null && ragSession.rag_headcount > 0) {
+          finalHeadcount = ragSession.rag_headcount;
+          headcountSource = 'rag_db';
+        }
+
+        if (session.main_headcount_percentage !== null && session.main_headcount_percentage > 0) {
+          finalHeadcountPercentage = session.main_headcount_percentage;
+          headcountSource = 'main_db';
+        } else if (ragSession && ragSession.rag_headcount_percentage !== null && ragSession.rag_headcount_percentage > 0) {
+          finalHeadcountPercentage = ragSession.rag_headcount_percentage;
+          headcountSource = headcountSource === 'main_db' ? 'main_db' : 'rag_db';
+        }
+
+        const roomCapacity = session.room_capacity || ragSession?.room_capacity;
         let estimatedHeadcount = null;
-        if (session.headcount_percentage !== null && roomCapacity) {
-          estimatedHeadcount = Math.round((session.headcount_percentage / 100) * roomCapacity);
+        if (finalHeadcountPercentage !== null && roomCapacity) {
+          estimatedHeadcount = Math.round((finalHeadcountPercentage / 100) * roomCapacity);
         }
 
         const moderators = typeof session.assigned_moderators === 'string'
@@ -296,20 +353,64 @@ export default async function exportRoutes(fastify, options) {
 
         return {
           id: session.id,
+          rag_id: ragSession?.id || null,
           name: session.name,
           date: session.date ? new Date(session.date).toISOString().split('T')[0] : '',
           start_time: session.start_time,
           end_time: session.end_time,
-          room_name: session.room_name || '',
+          room_name: session.room_name || ragSession?.room || '',
           room_capacity: roomCapacity || null,
-          speaker: session.speaker || '',
-          headcount: session.headcount,
-          headcount_percentage: session.headcount_percentage,
-          estimated_headcount: estimatedHeadcount || session.headcount || null,
+          speaker: session.speaker || ragSession?.speakers || '',
+          track: ragSession?.track || '',
+          headcount: finalHeadcount,
+          headcount_percentage: finalHeadcountPercentage,
+          estimated_headcount: estimatedHeadcount || finalHeadcount || null,
+          headcount_source: headcountSource,
           assigned_moderators: moderators,
           created_at: session.created_at
         };
       });
+
+      // Add RAG-only sessions (sessions in RAG DB but not in main DB)
+      const mainSessionNames = new Set(mainDbSessions.rows.map(s => s.name?.toLowerCase().trim()));
+      const ragOnlySessions = ragDbSessions.rows
+        .filter(s => !mainSessionNames.has(s.title?.toLowerCase().trim()))
+        .map(session => {
+          const roomCapacity = session.room_capacity;
+          let estimatedHeadcount = null;
+          if (session.rag_headcount_percentage !== null && roomCapacity) {
+            estimatedHeadcount = Math.round((session.rag_headcount_percentage / 100) * roomCapacity);
+          }
+
+          const hasHeadcount = (session.rag_headcount !== null && session.rag_headcount > 0) ||
+                               (session.rag_headcount_percentage !== null && session.rag_headcount_percentage > 0);
+
+          return {
+            id: null,
+            rag_id: session.id,
+            name: session.title,
+            date: session.date ? new Date(session.date).toISOString().split('T')[0] : '',
+            start_time: session.time_start,
+            end_time: session.time_end,
+            room_name: session.room || '',
+            room_capacity: roomCapacity || null,
+            speaker: session.speakers || '',
+            track: session.track || '',
+            headcount: session.rag_headcount,
+            headcount_percentage: session.rag_headcount_percentage,
+            estimated_headcount: estimatedHeadcount || session.rag_headcount || null,
+            headcount_source: hasHeadcount ? 'rag_db' : 'none',
+            assigned_moderators: [],
+            created_at: null
+          };
+        });
+
+      // Combine and filter to only filled headcounts
+      const allData = [...mergedData, ...ragOnlySessions];
+      const filledHeadcounts = allData.filter(s =>
+        (s.headcount !== null && s.headcount > 0) ||
+        (s.headcount_percentage !== null && s.headcount_percentage > 0)
+      );
 
       return success({
         total: filledHeadcounts.length,
