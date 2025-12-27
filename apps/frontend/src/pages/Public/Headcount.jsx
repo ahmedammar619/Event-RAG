@@ -140,23 +140,32 @@ export default function Headcount() {
   }, [sessions, selectedDate, selectedRoom, searchQuery, timeFilter, levelFilter, currentTime])
 
   const sessionCounts = useMemo(() => {
+    // First filter by date
     const dateFiltered = selectedDate
       ? sessions.filter(s => new Date(s.date).toISOString().split('T')[0] === selectedDate)
       : sessions
 
+    // Then filter by level for time counts
+    const levelFiltered = levelFilter === 'all'
+      ? dateFiltered
+      : levelFilter === 'level1'
+        ? dateFiltered.filter(s => isLevel1Room(s.room))
+        : dateFiltered.filter(s => !isLevel1Room(s.room))
+
     return {
-      now: dateFiltered.filter(s => getSessionStatus(s) === 'now').length,
-      soon: dateFiltered.filter(s => getSessionStatus(s) === 'soon').length,
-      upcoming: dateFiltered.filter(s => getSessionStatus(s) === 'upcoming' || getSessionStatus(s) === 'soon').length,
-      just_ended: dateFiltered.filter(s => getSessionStatus(s) === 'just_ended').length,
-      past: dateFiltered.filter(s => getSessionStatus(s) === 'past' || getSessionStatus(s) === 'just_ended').length,
-      all: dateFiltered.length,
-      // Level counts
+      // Time counts (affected by level filter)
+      now: levelFiltered.filter(s => getSessionStatus(s) === 'now').length,
+      soon: levelFiltered.filter(s => getSessionStatus(s) === 'soon').length,
+      upcoming: levelFiltered.filter(s => getSessionStatus(s) === 'upcoming' || getSessionStatus(s) === 'soon').length,
+      just_ended: levelFiltered.filter(s => getSessionStatus(s) === 'just_ended').length,
+      past: levelFiltered.filter(s => getSessionStatus(s) === 'past' || getSessionStatus(s) === 'just_ended').length,
+      all: levelFiltered.length,
+      // Level counts (only affected by date filter, not level filter)
       allRooms: dateFiltered.length,
       level1: dateFiltered.filter(s => isLevel1Room(s.room)).length,
       otherRooms: dateFiltered.filter(s => !isLevel1Room(s.room)).length
     }
-  }, [sessions, selectedDate, currentTime])
+  }, [sessions, selectedDate, levelFilter, currentTime])
 
   const startEditing = (session) => {
     setEditingId(session.id)
