@@ -11,6 +11,7 @@ import aiRoutes from './ai.js';
 import speakersRoutes from './speakers.js';
 import headcountRoutes from './headcount.js';
 import exportRoutes from './export.js';
+import syncRoutes from './sync.js';
 
 export default async function routes(fastify, options) {
   fastify.register(adminRoutes, { prefix: '/admin' });
@@ -26,4 +27,5 @@ export default async function routes(fastify, options) {
   fastify.register(speakersRoutes, { prefix: '/speakers' });
   fastify.register(headcountRoutes, { prefix: '/headcount' });
   fastify.register(exportRoutes, { prefix: '/export' });
+  fastify.register(syncRoutes, { prefix: '/sync' });
 }
