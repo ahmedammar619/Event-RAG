@@ -15,6 +15,14 @@ export default function Headcount() {
   const [selectedRoom, setSelectedRoom] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [timeFilter, setTimeFilter] = useState('now') // now, soon, upcoming, past, all
+  const [levelFilter, setLevelFilter] = useState('all') // all, level1, other
+
+  // Helper to check if room is Level 1
+  const isLevel1Room = (room) => {
+    if (!room) return false
+    const normalized = room.toLowerCase().replace(/\s+/g, '')
+    return normalized.startsWith('level1')
+  }
 
   // Editing state
   const [editingId, setEditingId] = useState(null)
@@ -120,12 +128,16 @@ export default function Headcount() {
         if (timeFilter === 'past' && status !== 'past' && status !== 'just_ended') return false
       }
 
+      // Level filter
+      if (levelFilter === 'level1' && !isLevel1Room(session.room)) return false
+      if (levelFilter === 'other' && isLevel1Room(session.room)) return false
+
       return true
     }).sort((a, b) => {
       // Sort by time_start
       return a.time_start.localeCompare(b.time_start)
     })
-  }, [sessions, selectedDate, selectedRoom, searchQuery, timeFilter, currentTime])
+  }, [sessions, selectedDate, selectedRoom, searchQuery, timeFilter, levelFilter, currentTime])
 
   const sessionCounts = useMemo(() => {
     const dateFiltered = selectedDate
@@ -361,6 +373,27 @@ export default function Headcount() {
                   <option key={room} value={room}>{room}</option>
                 ))}
               </select>
+
+              {/* Level Filter */}
+              <div className="flex rounded-xl border-2 border-slate-200 overflow-hidden">
+                {[
+                  { value: 'all', label: 'All Levels' },
+                  { value: 'level1', label: 'Level 1' },
+                  { value: 'other', label: 'Other' }
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setLevelFilter(opt.value)}
+                    className={`px-4 py-2 text-sm font-medium transition-all ${
+                      levelFilter === opt.value
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-white text-slate-600 hover:bg-purple-50'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Time Filter Tabs */}
