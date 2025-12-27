@@ -94,7 +94,7 @@ export default async function sessionsRoutes(fastify, options) {
   fastify.post('/', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
-    const { name, event_day_id, room_id, start_time, end_time, moderators_needed } = request.body;
+    const { name, event_day_id, room_id, start_time, end_time, moderators_needed, speaker } = request.body;
 
     if (!name || !event_day_id || !start_time || !end_time) {
       throw validationError('Name, event_day_id, start_time, and end_time are required');
@@ -120,10 +120,10 @@ export default async function sessionsRoutes(fastify, options) {
     }
 
     const result = await db.query(
-      `INSERT INTO sessions (name, event_day_id, room_id, start_time, end_time, moderators_needed)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO sessions (name, event_day_id, room_id, start_time, end_time, moderators_needed, speaker)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [name, event_day_id, room_id || null, start_time, end_time, moderators_needed || 1]
+      [name, event_day_id, room_id || null, start_time, end_time, moderators_needed || 1, speaker || null]
     );
 
     reply.status(201);
@@ -135,7 +135,7 @@ export default async function sessionsRoutes(fastify, options) {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     const { id } = request.params;
-    const { name, event_day_id, room_id, start_time, end_time, moderators_needed } = request.body;
+    const { name, event_day_id, room_id, start_time, end_time, moderators_needed, speaker } = request.body;
 
     const result = await db.query(
       `UPDATE sessions
@@ -144,10 +144,11 @@ export default async function sessionsRoutes(fastify, options) {
            room_id = COALESCE($3, room_id),
            start_time = COALESCE($4, start_time),
            end_time = COALESCE($5, end_time),
-           moderators_needed = COALESCE($6, moderators_needed)
-       WHERE id = $7
+           moderators_needed = COALESCE($6, moderators_needed),
+           speaker = $7
+       WHERE id = $8
        RETURNING *`,
-      [name, event_day_id, room_id, start_time, end_time, moderators_needed, id]
+      [name, event_day_id, room_id, start_time, end_time, moderators_needed, speaker, id]
     );
 
     if (result.rows.length === 0) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { sessionsService, daysService, roomsService } from '../../services/api'
+import { sessionsService, daysService, roomsService, speakersService } from '../../services/api'
 import { useToast } from '../../context/ToastContext'
 
 export default function Sessions() {
@@ -8,6 +8,7 @@ export default function Sessions() {
   const [sessions, setSessions] = useState([])
   const [days, setDays] = useState([])
   const [rooms, setRooms] = useState([])
+  const [speakers, setSpeakers] = useState([])
   const [filter, setFilter] = useState({ day_id: '', room_id: '' })
   const [showModal, setShowModal] = useState(false)
   const [editingSession, setEditingSession] = useState(null)
@@ -17,7 +18,8 @@ export default function Sessions() {
     room_id: '',
     start_time: '',
     end_time: '',
-    moderators_needed: 1
+    moderators_needed: 1,
+    speaker: ''
   })
 
   // Headcount editing state
@@ -36,12 +38,14 @@ export default function Sessions() {
 
   const loadData = async () => {
     try {
-      const [daysRes, roomsRes] = await Promise.all([
+      const [daysRes, roomsRes, speakersRes] = await Promise.all([
         daysService.getAll(),
-        roomsService.getAll()
+        roomsService.getAll(),
+        speakersService.getAll()
       ])
       setDays(daysRes.data.data)
       setRooms(roomsRes.data.data)
+      setSpeakers(speakersRes.data.data || [])
     } catch (err) {
       toast.error('Failed to load data')
     }
@@ -68,7 +72,8 @@ export default function Sessions() {
         room_id: session.room_id || '',
         start_time: session.start_time.slice(0, 5),
         end_time: session.end_time.slice(0, 5),
-        moderators_needed: session.moderators_needed
+        moderators_needed: session.moderators_needed,
+        speaker: session.speaker || ''
       })
     } else {
       setEditingSession(null)
@@ -78,7 +83,8 @@ export default function Sessions() {
         room_id: '',
         start_time: '',
         end_time: '',
-        moderators_needed: 1
+        moderators_needed: 1,
+        speaker: ''
       })
     }
     setShowModal(true)
@@ -91,7 +97,8 @@ export default function Sessions() {
         ...form,
         event_day_id: parseInt(form.event_day_id),
         room_id: form.room_id ? parseInt(form.room_id) : null,
-        moderators_needed: parseInt(form.moderators_needed)
+        moderators_needed: parseInt(form.moderators_needed),
+        speaker: form.speaker || null
       }
 
       if (editingSession) {
@@ -239,6 +246,7 @@ export default function Sessions() {
                 <thead>
                   <tr>
                     <th>Session</th>
+                    <th>Speaker</th>
                     <th>Date</th>
                     <th>Time</th>
                     <th>Room</th>
@@ -269,6 +277,7 @@ export default function Sessions() {
                     return (
                       <tr key={session.id}>
                         <td><strong>{session.name}</strong></td>
+                        <td className="text-sm text-slate-600">{session.speaker || <span className="text-slate-400">-</span>}</td>
                         <td>{formatDate(session.date)}</td>
                         <td>{session.start_time.slice(0, 5)} - {session.end_time.slice(0, 5)}</td>
                         <td>{session.room_name || '-'}</td>
@@ -444,6 +453,25 @@ export default function Sessions() {
                     onChange={e => setForm({ ...form, moderators_needed: e.target.value })}
                     required
                   />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Speaker (optional)</label>
+                  <input
+                    type="text"
+                    className="form-input"
+                    list="speakers-list"
+                    placeholder="Select or type speaker name"
+                    value={form.speaker}
+                    onChange={e => setForm({ ...form, speaker: e.target.value })}
+                  />
+                  <datalist id="speakers-list">
+                    {speakers.map(speaker => (
+                      <option key={speaker.id} value={speaker.name} />
+                    ))}
+                  </datalist>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Select from existing speakers or type a new name
+                  </p>
                 </div>
               </div>
               <div className="modal-footer">
