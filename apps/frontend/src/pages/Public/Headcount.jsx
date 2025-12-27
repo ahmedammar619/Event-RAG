@@ -595,6 +595,22 @@ export default function Headcount() {
         )}
       </div>
 
+      {/* Moderator Section Link */}
+      <div className="container mx-auto px-4 py-6 max-w-5xl">
+        <div className="bg-white rounded-2xl shadow-lg border border-purple-100 p-6 text-center">
+          <p className="text-slate-600 mb-4">Are you a moderator?</p>
+          <a
+            href="/moderator"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl font-medium hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg shadow-purple-200"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            Go to Moderator Section
+          </a>
+        </div>
+      </div>
+
       <Footer />
     </div>
   )
