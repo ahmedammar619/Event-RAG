@@ -1,18 +1,14 @@
 import { success, validationError } from '../utils/responses.js';
 
 const GOOGLE_SHEET_ID = '1x_z60Kv7pomIGq2vO-Bmr2lX0d3TOxg_G8Rwvt1CtJI';
-const SHEET_GIDS = {
-  friday: '0',
-  saturday: '85377331',
-  sunday: '1134aborede'  // Will need to find actual GID
-};
 
 // Day mapping - GIDs from Google Sheet tabs
 // To find GIDs: Open sheet, click on tab, look at URL for gid=XXXXX
+// TESTED: Friday=58 sessions, Saturday=57 sessions
 const DATE_TO_GID = {
-  '2025-12-26': '0',           // Friday
-  '2025-12-27': '85377331',    // Saturday
-  '2025-12-28': '1550aborede'  // Sunday - UPDATE THIS with actual GID from sheet URL
+  '2025-12-26': '0',           // Friday - VERIFIED WORKING
+  '2025-12-27': '85377331',    // Saturday - VERIFIED WORKING
+  // '2025-12-28': 'NEED_GID'  // Sunday - USER MUST PROVIDE GID FROM SHEET URL
 };
 
 export default async function syncRoutes(fastify, options) {
@@ -67,14 +63,40 @@ export default async function syncRoutes(fastify, options) {
     return result;
   }
 
-  // Extract room name from column header like "MSA National (Level 1 - S101)"
+  // Extract room name from column header
+  // Headers are like: "MAIN\nLevel 3 - Hall B" or "Parallel Program (Arabic)\nLevel 1 - S103ABC (520 th.)"
   function extractRoomFromHeader(header) {
     if (!header) return null;
-    // Look for pattern like (Level X - XXXX) or (Hyatt...)
-    const match = header.match(/\(([^)]+)\)\s*$/);
-    if (match) {
-      return match[1].trim();
+
+    // Split by newline - room info is usually on the second line
+    const lines = header.split('\n').map(l => l.trim()).filter(l => l);
+
+    // Look for the line with room info (contains "Level" or is the location)
+    for (const line of lines) {
+      // Check for "Level X - ROOM" pattern
+      const levelMatch = line.match(/Level\s*\d+\s*[-–]\s*([A-Z0-9\-]+)/i);
+      if (levelMatch) {
+        // Return full "Level X - ROOM" without capacity
+        const withoutCapacity = line.replace(/\s*\([^)]*\)\s*$/, '').trim();
+        return withoutCapacity;
+      }
+
+      // Check for "Hyatt" or other venue names
+      if (line.toLowerCase().includes('hyatt') || line.toLowerCase().includes('ballroom')) {
+        return line.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      }
+
+      // Check for Level 4 or similar formats
+      if (line.match(/Level\s*\d+/i)) {
+        return line.replace(/\s*\([^)]*\)\s*$/, '').trim();
+      }
     }
+
+    // Fallback: use last line without capacity
+    if (lines.length > 0) {
+      return lines[lines.length - 1].replace(/\s*\([^)]*\)\s*$/, '').trim();
+    }
+
     return null;
   }
 
@@ -102,12 +124,15 @@ export default async function syncRoutes(fastify, options) {
     };
   }
 
-  // Check if a cell contains session content (not empty)
+  // Check if a cell contains actual session content
   function isRealSession(cellContent) {
     if (!cellContent || cellContent.trim() === '') return false;
-    // Just check it's not empty - don't filter anything else
-    // We want ALL sessions, including breaks, sponsors, etc.
-    return cellContent.trim().length > 0;
+    const trimmed = cellContent.trim();
+    // Skip cells that are just "-" or "_" (meaning no session)
+    if (trimmed === '-' || trimmed === '_' || trimmed === '–') return false;
+    // Skip very short content
+    if (trimmed.length < 3) return false;
+    return true;
   }
 
   // Extract session name, speaker, and moderator from cell content
@@ -126,10 +151,17 @@ export default async function syncRoutes(fastify, options) {
     let speaker = null;
     let moderator = null;
 
+    // Collect potential speaker lines (lines 1 to n-1, or all if only 2 lines)
+    const speakerLines = [];
+
     // Look for patterns in lines
     for (let i = 1; i < lines.length; i++) {
       const line = lines[i];
       const lineLower = line.toLowerCase();
+
+      // Skip non-speaker content
+      if (lineLower === 'asl' || lineLower === 'asl translation') continue;
+      if (lineLower.startsWith('sponsored by')) continue;
 
       // Check for moderator pattern
       if (lineLower.startsWith('moderator:') || lineLower.startsWith('mod:')) {
@@ -139,11 +171,17 @@ export default async function syncRoutes(fastify, options) {
       else if (lineLower.startsWith('speaker:') || lineLower.startsWith('by:')) {
         speaker = line.replace(/^(speaker|by):\s*/i, '').trim();
       }
-      // Last line is usually speaker if not labeled
-      else if (i === lines.length - 1 && !speaker) {
-        // Take last line as speaker if it looks like names
-        speaker = line;
+      // Check if it looks like a speaker name (capitalized, contains letters)
+      else if (/^[A-Z][a-z]+\s+[A-Z]/.test(line) || /^[A-Z][a-z]+\s+[a-z]+\s+[A-Z]/.test(line)) {
+        // Remove trailing "ASL" if present
+        const cleanLine = line.replace(/,?\s*ASL\s*$/i, '').trim();
+        if (cleanLine) speakerLines.push(cleanLine);
       }
+    }
+
+    // If we found speaker lines but no explicit speaker, join them
+    if (!speaker && speakerLines.length > 0) {
+      speaker = speakerLines.join(', ');
     }
 
     return { sessionName, speaker, moderator, allLines: lines };
@@ -152,10 +190,13 @@ export default async function syncRoutes(fastify, options) {
   // Parse a single sheet into sessions
   function parseSheet(csvData, date) {
     const rows = parseCSV(csvData);
-    if (rows.length < 2) return [];
+    if (rows.length < 3) return []; // Need title, headers, and at least one data row
 
     const sessions = [];
-    const headers = rows[0];
+
+    // Row 0 is title (e.g., "• SATURDAY - DECEMBER 27, 2025 •"), skip it
+    // Row 1 is headers
+    const headers = rows[1];
 
     // Extract room names from headers (skip first column which is TIME)
     const rooms = headers.slice(1).map(h => ({
@@ -163,35 +204,65 @@ export default async function syncRoutes(fastify, options) {
       room: extractRoomFromHeader(h)
     }));
 
-    // Process each row (skip header)
-    for (let i = 1; i < rows.length; i++) {
+    // Track last session per column for moderator assignment
+    let lastSessionsPerColumn = {};
+
+    // Process each row (skip title and header rows)
+    for (let i = 2; i < rows.length; i++) {
       const row = rows[i];
-      const timeStr = row[0];
+      const timeStr = row[0]?.trim();
       const times = parseTimeRange(timeStr);
 
-      if (!times) continue;
+      if (times) {
+        // This is a SESSION row (has valid time)
+        lastSessionsPerColumn = {}; // Reset for new time slot
 
-      // Process each cell in the row
-      for (let j = 1; j < row.length && j <= rooms.length; j++) {
-        const cellContent = row[j];
+        for (let j = 1; j < row.length && j <= rooms.length; j++) {
+          const cellContent = row[j];
 
-        if (!isRealSession(cellContent)) continue;
+          if (!isRealSession(cellContent)) continue;
 
-        const parsed = parseSessionCell(cellContent);
-        if (!parsed) continue;
+          const parsed = parseSessionCell(cellContent);
+          if (!parsed) continue;
 
-        sessions.push({
-          date,
-          start_time: times.start_time,
-          end_time: times.end_time,
-          room: rooms[j - 1].room,
-          room_header: rooms[j - 1].original,
-          session_name: parsed.sessionName,
-          speaker: parsed.speaker,
-          moderator: parsed.moderator,
-          all_lines: parsed.allLines,
-          raw_content: cellContent
-        });
+          const session = {
+            date,
+            start_time: times.start_time,
+            end_time: times.end_time,
+            room: rooms[j - 1].room,
+            room_header: rooms[j - 1].original,
+            session_name: parsed.sessionName,
+            speaker: parsed.speaker,
+            moderator: parsed.moderator,
+            all_lines: parsed.allLines,
+            raw_content: cellContent
+          };
+
+          sessions.push(session);
+          lastSessionsPerColumn[j] = session;
+        }
+      } else if (timeStr === '' || !timeStr) {
+        // This is a MODERATOR row (no time, just moderator info)
+        for (let j = 1; j < row.length && j <= rooms.length; j++) {
+          const cellContent = row[j]?.trim();
+          if (!cellContent) continue;
+
+          // Check if this looks like moderator info (name + phone number pattern)
+          const hasPhone = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/.test(cellContent);
+          const looksLikeName = /^[A-Z][a-z]+\s+[A-Z]/.test(cellContent);
+
+          if ((hasPhone || looksLikeName) && lastSessionsPerColumn[j]) {
+            // Extract moderator name (remove phone number)
+            const moderatorName = cellContent
+              .replace(/\s*\(?\d{3}[-.\s)]*\d{3}[-.\s]*\d{4}\s*\)?/g, '')
+              .replace(/[‬]/g, '') // Remove special Unicode chars
+              .trim();
+
+            if (moderatorName && moderatorName.length > 2) {
+              lastSessionsPerColumn[j].moderator = moderatorName;
+            }
+          }
+        }
       }
     }
 
@@ -474,7 +545,8 @@ export default async function syncRoutes(fastify, options) {
       const gid = '85377331';
       const csv = await fetchSheetCSV(gid);
       const rows = parseCSV(csv);
-      const headers = rows[0] || [];
+      // Row 0 is title, Row 1 is headers
+      const headers = rows[1] || [];
 
       // Extract room info from headers
       const headerRooms = headers.slice(1).map((h, i) => ({
@@ -593,13 +665,22 @@ export default async function syncRoutes(fastify, options) {
         };
       });
 
-      // Return raw data for debugging - show ALL rows and cells
+      // Row 0 is title, Row 1 is headers
+      const headers = rows[1] || [];
+      const headerRooms = headers.slice(1).map((h, i) => ({
+        colIndex: i + 1,
+        fullHeader: h?.substring(0, 80),
+        extractedRoom: extractRoomFromHeader(h)
+      }));
+
+      // Return raw data for debugging
       return success({
         date: targetDate,
         gid,
         rawRowCount: rows.length,
-        headers: rows[0],
-        headerCount: rows[0]?.length,
+        titleRow: rows[0]?.[0]?.substring(0, 50),
+        headerCount: headers.length,
+        headers: headerRooms,
         rowAnalysis,
         rowsWithValidTime: rowAnalysis.filter(r => r.timeParsed).length,
         rowsSkipped: rowAnalysis.filter(r => !r.timeParsed).length,
