@@ -163,5 +163,8 @@ export const exportService = {
 export const syncService = {
   preview: () => api.get('/sync/preview'),
   apply: (changes) => api.post('/sync/apply', { changes }),
-  getLogs: () => api.get('/sync/logs')
+  getLogs: () => api.get('/sync/logs'),
+  debug: (date) => api.get('/sync/debug', { params: { date } }),
+  matchCheck: () => api.get('/sync/match-check'),
+  raw: (date) => api.get('/sync/raw', { params: { date } })
 }

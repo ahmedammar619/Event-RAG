@@ -102,72 +102,51 @@ export default async function syncRoutes(fastify, options) {
     };
   }
 
-  // Check if a cell contains a real session (has speaker names, not just org/sponsor)
+  // Check if a cell contains session content (not empty)
   function isRealSession(cellContent) {
     if (!cellContent || cellContent.trim() === '') return false;
-
-    const lower = cellContent.toLowerCase();
-
-    // Skip common non-session content
-    const skipPatterns = [
-      'break', 'lunch', 'dinner', 'prayer', 'registration', 'check-in',
-      'networking', 'exhibition', 'expo', 'booth', 'sponsor',
-      'opening', 'closing', 'ceremony', 'tbd', 'to be determined',
-      'reserved', 'setup', 'teardown', 'doors open'
-    ];
-
-    for (const pattern of skipPatterns) {
-      if (lower.includes(pattern)) return false;
-    }
-
-    // Check if it looks like it has a person's name (contains letters and possibly title)
-    // Real sessions usually have format: "Session Title - Speaker Name" or "Speaker Name: Topic"
-    // Or just multi-word content that's not just an organization
-
-    // If it's very short (less than 5 chars), probably not a real session
-    if (cellContent.trim().length < 5) return false;
-
-    return true;
+    // Just check it's not empty - don't filter anything else
+    // We want ALL sessions, including breaks, sponsors, etc.
+    return cellContent.trim().length > 0;
   }
 
-  // Extract session name and speaker from cell content
+  // Extract session name, speaker, and moderator from cell content
+  // Google Sheet format varies - try multiple patterns
   function parseSessionCell(cellContent) {
     if (!cellContent) return null;
 
     const content = cellContent.trim();
 
-    // Try to split by common delimiters
-    // Pattern 1: "Session Title - Speaker Name"
-    // Pattern 2: "Speaker Name: Session Title"
-    // Pattern 3: "Session Title\nSpeaker Name"
+    // Split by newlines and filter empty lines
+    const lines = content.split('\n').map(l => l.trim()).filter(l => l);
 
-    let sessionName = content;
+    if (lines.length === 0) return null;
+
+    let sessionName = lines[0];
     let speaker = null;
+    let moderator = null;
 
-    // Check for newline separator
-    if (content.includes('\n')) {
-      const parts = content.split('\n').map(p => p.trim()).filter(p => p);
-      if (parts.length >= 2) {
-        sessionName = parts[0];
-        speaker = parts.slice(1).join(', ');
+    // Look for patterns in lines
+    for (let i = 1; i < lines.length; i++) {
+      const line = lines[i];
+      const lineLower = line.toLowerCase();
+
+      // Check for moderator pattern
+      if (lineLower.startsWith('moderator:') || lineLower.startsWith('mod:')) {
+        moderator = line.replace(/^(moderator|mod):\s*/i, '').trim();
+      }
+      // Check for speaker pattern
+      else if (lineLower.startsWith('speaker:') || lineLower.startsWith('by:')) {
+        speaker = line.replace(/^(speaker|by):\s*/i, '').trim();
+      }
+      // Last line is usually speaker if not labeled
+      else if (i === lines.length - 1 && !speaker) {
+        // Take last line as speaker if it looks like names
+        speaker = line;
       }
     }
-    // Check for " - " separator (but not at start/end)
-    else if (content.includes(' - ') && !content.startsWith(' - ')) {
-      const idx = content.lastIndexOf(' - ');
-      if (idx > 0 && idx < content.length - 3) {
-        sessionName = content.substring(0, idx).trim();
-        speaker = content.substring(idx + 3).trim();
-      }
-    }
-    // Check for " by " separator
-    else if (content.toLowerCase().includes(' by ')) {
-      const idx = content.toLowerCase().lastIndexOf(' by ');
-      sessionName = content.substring(0, idx).trim();
-      speaker = content.substring(idx + 4).trim();
-    }
 
-    return { sessionName, speaker };
+    return { sessionName, speaker, moderator, allLines: lines };
   }
 
   // Parse a single sheet into sessions
@@ -209,6 +188,8 @@ export default async function syncRoutes(fastify, options) {
           room_header: rooms[j - 1].original,
           session_name: parsed.sessionName,
           speaker: parsed.speaker,
+          moderator: parsed.moderator,
+          all_lines: parsed.allLines,
           raw_content: cellContent
         });
       }
@@ -218,8 +199,9 @@ export default async function syncRoutes(fastify, options) {
   }
 
   // Find matching session in database
+  // STRICT: Only match by room + time slot (most reliable)
   async function findMatchingSession(sheetSession) {
-    // Strategy 1: Match by room + time + date
+    // Match by room + start_time + date (ignore end time as it may differ slightly)
     const roomMatch = await db.query(`
       SELECT s.*, r.name as room_name
       FROM sessions s
@@ -234,31 +216,11 @@ export default async function syncRoutes(fastify, options) {
       return { match: roomMatch.rows[0], matchType: 'room_time' };
     }
 
-    // Strategy 2: Match by session name similarity
-    const nameMatch = await db.query(`
-      SELECT s.*, r.name as room_name, ed.date
-      FROM sessions s
-      LEFT JOIN rooms r ON s.room_id = r.id
-      LEFT JOIN event_days ed ON s.event_day_id = ed.id
-      WHERE ed.date = $1
-        AND (
-          s.name ILIKE $2
-          OR s.name ILIKE $3
-        )
-    `, [
-      sheetSession.date,
-      `%${sheetSession.session_name.substring(0, 30)}%`,
-      `%${sheetSession.session_name.split(' ').slice(0, 3).join(' ')}%`
-    ]);
-
-    if (nameMatch.rows.length === 1) {
-      return { match: nameMatch.rows[0], matchType: 'name' };
+    if (roomMatch.rows.length > 1) {
+      return { match: null, matchType: 'multiple_room_time', candidates: roomMatch.rows };
     }
 
-    if (nameMatch.rows.length > 1) {
-      return { match: null, matchType: 'multiple', candidates: nameMatch.rows };
-    }
-
+    // No match by room+time - don't fall back to fuzzy name matching (too unreliable)
     return { match: null, matchType: 'none' };
   }
 
@@ -311,12 +273,45 @@ export default async function syncRoutes(fastify, options) {
           const dbSession = result.match;
           const sessionChanges = [];
 
-          // Check if speaker needs update
-          if (sheetSession.speaker && sheetSession.speaker !== dbSession.speaker) {
+          // Normalize time format for comparison (remove seconds if present)
+          const normalizeTime = (t) => t ? t.substring(0, 5) : null;
+          const dbEndTime = normalizeTime(dbSession.end_time);
+          const sheetEndTime = normalizeTime(sheetSession.end_time);
+
+          // Check if end_time needs update
+          if (sheetEndTime && dbEndTime !== sheetEndTime) {
             sessionChanges.push({
-              field: 'speaker',
-              old: dbSession.speaker,
-              new: sheetSession.speaker
+              field: 'end_time',
+              old: dbSession.end_time,
+              new: sheetSession.end_time
+            });
+          }
+
+          // Check if speaker needs update (only if sheet has speaker data)
+          if (sheetSession.speaker) {
+            // Normalize speaker names for comparison (ignore case, punctuation differences)
+            const normalizeSpeaker = (s) => s ? s.toLowerCase().replace(/[;&,]/g, ' ').replace(/\s+/g, ' ').trim() : '';
+            const dbSpeakerNorm = normalizeSpeaker(dbSession.speaker);
+            const sheetSpeakerNorm = normalizeSpeaker(sheetSession.speaker);
+
+            if (dbSpeakerNorm !== sheetSpeakerNorm) {
+              sessionChanges.push({
+                field: 'speaker',
+                old: dbSession.speaker,
+                new: sheetSession.speaker
+              });
+            }
+          }
+
+          // Check if session name differs significantly (for logging, not auto-update)
+          const normalizeTitle = (t) => t ? t.toLowerCase().replace(/[^\w\s]/g, '').trim() : '';
+          const dbTitleNorm = normalizeTitle(dbSession.name);
+          const sheetTitleNorm = normalizeTitle(sheetSession.session_name);
+          if (dbTitleNorm !== sheetTitleNorm && sheetSession.session_name) {
+            // Log name mismatch but don't auto-update (names should match already)
+            logs.push({
+              type: 'warning',
+              message: `Session name mismatch at ${sheetSession.room} ${sheetSession.start_time}: DB="${dbSession.name}" vs Sheet="${sheetSession.session_name}"`
             });
           }
 
@@ -340,10 +335,10 @@ export default async function syncRoutes(fastify, options) {
               changes: sessionChanges
             });
           }
-        } else if (result.matchType === 'multiple') {
+        } else if (result.matchType === 'multiple_room_time') {
           logs.push({
             type: 'warning',
-            message: `Multiple matches for "${sheetSession.session_name}" - skipping`,
+            message: `Multiple DB sessions at ${sheetSession.room} ${sheetSession.start_time} - skipping`,
             candidates: result.candidates?.map(c => c.name)
           });
         } else {
@@ -389,17 +384,25 @@ export default async function syncRoutes(fastify, options) {
         try {
           // Build update query based on changes
           for (const fieldChange of change.changes) {
+            let query = null;
+            let params = null;
+
             if (fieldChange.field === 'speaker') {
-              await db.query(
-                'UPDATE sessions SET speaker = $1 WHERE id = $2',
-                [fieldChange.new, change.dbSession.id]
-              );
+              query = 'UPDATE sessions SET speaker = $1 WHERE id = $2';
+              params = [fieldChange.new, change.dbSession.id];
+            } else if (fieldChange.field === 'end_time') {
+              query = 'UPDATE sessions SET end_time = $1 WHERE id = $2';
+              params = [fieldChange.new, change.dbSession.id];
+            }
+
+            if (query) {
+              await db.query(query, params);
 
               syncLog.push({
                 timestamp: new Date().toISOString(),
                 sessionId: change.dbSession.id,
                 sessionName: change.dbSession.name,
-                field: 'speaker',
+                field: fieldChange.field,
                 oldValue: fieldChange.old,
                 newValue: fieldChange.new,
                 status: 'success'
@@ -408,7 +411,7 @@ export default async function syncRoutes(fastify, options) {
               results.push({
                 sessionId: change.dbSession.id,
                 status: 'updated',
-                field: 'speaker'
+                field: fieldChange.field
               });
             }
           }
@@ -447,6 +450,192 @@ export default async function syncRoutes(fastify, options) {
       results,
       log: syncLog
     });
+  });
+
+  // GET /api/sync/raw - Get raw CSV data from sheet
+  fastify.get('/raw', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    const { date } = request.query;
+    const targetDate = date || '2025-12-27';
+    const gid = DATE_TO_GID[targetDate];
+
+    if (!gid) {
+      return validationError(`No GID configured for date: ${targetDate}`);
+    }
+
+    try {
+      const csv = await fetchSheetCSV(gid);
+      // Return first 5000 chars of raw CSV
+      return success({
+        date: targetDate,
+        gid,
+        csvLength: csv.length,
+        csvPreview: csv.substring(0, 8000)
+      });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // GET /api/sync/debug - Debug view of parsed sheet data
+  fastify.get('/debug', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    const { date } = request.query;
+    const targetDate = date || '2025-12-27'; // Default to Saturday
+    const gid = DATE_TO_GID[targetDate];
+
+    if (!gid) {
+      return validationError(`No GID configured for date: ${targetDate}`);
+    }
+
+    try {
+      const csv = await fetchSheetCSV(gid);
+      const rows = parseCSV(csv);
+      const sessions = parseSheet(csv, targetDate);
+
+      // Debug: check each row for time parsing
+      const rowAnalysis = rows.slice(1, 50).map((row, i) => {
+        const timeStr = row[0];
+        const times = parseTimeRange(timeStr);
+        const nonEmptyCells = row.slice(1).filter(c => c && c.trim()).length;
+        return {
+          rowIndex: i + 1,
+          timeCell: timeStr?.substring(0, 50),
+          timeParsed: !!times,
+          parsedTimes: times,
+          nonEmptyCells
+        };
+      });
+
+      // Return raw data for debugging - show ALL rows and cells
+      return success({
+        date: targetDate,
+        gid,
+        rawRowCount: rows.length,
+        headers: rows[0],
+        headerCount: rows[0]?.length,
+        rowAnalysis,
+        rowsWithValidTime: rowAnalysis.filter(r => r.timeParsed).length,
+        rowsSkipped: rowAnalysis.filter(r => !r.timeParsed).length,
+        parsedSessionCount: sessions.length,
+        parsedSessions: sessions.map(s => ({
+          room: s.room,
+          time: `${s.start_time} - ${s.end_time}`,
+          sessionName: s.session_name,
+          speaker: s.speaker,
+          moderator: s.moderator,
+          lineCount: s.all_lines?.length,
+          rawContent: s.raw_content?.substring(0, 300)
+        }))
+      });
+    } catch (err) {
+      throw err;
+    }
+  });
+
+  // GET /api/sync/match-check - Check all DB sessions against sheet data
+  fastify.get('/match-check', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      // Get all sessions from database
+      const dbResult = await db.query(`
+        SELECT s.id, s.name, s.speaker, s.start_time, s.end_time,
+               r.name as room_name, ed.date
+        FROM sessions s
+        LEFT JOIN rooms r ON s.room_id = r.id
+        LEFT JOIN event_days ed ON s.event_day_id = ed.id
+        ORDER BY ed.date, s.start_time, r.name
+      `);
+      const dbSessions = dbResult.rows;
+
+      // Fetch all sheet data with per-sheet counts
+      const allSheetSessions = [];
+      const sheetCounts = {};
+      for (const [dateStr, gid] of Object.entries(DATE_TO_GID)) {
+        try {
+          const csv = await fetchSheetCSV(gid);
+          const sessions = parseSheet(csv, dateStr);
+          sheetCounts[dateStr] = sessions.length;
+          allSheetSessions.push(...sessions);
+        } catch (err) {
+          sheetCounts[dateStr] = `Error: ${err.message}`;
+        }
+      }
+
+      // Check each DB session for a match
+      const matchResults = [];
+      const matchedSheetIndices = new Set();
+
+      for (const dbSession of dbSessions) {
+        const dateStr = dbSession.date?.toISOString().split('T')[0];
+        const dbStartTime = dbSession.start_time?.substring(0, 5);
+
+        // Find matching sheet session
+        let matchedSheet = null;
+        let matchIndex = -1;
+
+        for (let i = 0; i < allSheetSessions.length; i++) {
+          const sheet = allSheetSessions[i];
+          if (sheet.date === dateStr &&
+              sheet.start_time === dbStartTime &&
+              dbSession.room_name?.toLowerCase().includes(sheet.room?.toLowerCase())) {
+            matchedSheet = sheet;
+            matchIndex = i;
+            matchedSheetIndices.add(i);
+            break;
+          }
+        }
+
+        matchResults.push({
+          dbId: dbSession.id,
+          dbName: dbSession.name,
+          dbRoom: dbSession.room_name,
+          dbTime: `${dbSession.start_time} - ${dbSession.end_time}`,
+          dbDate: dateStr,
+          dbSpeaker: dbSession.speaker,
+          matched: !!matchedSheet,
+          sheetName: matchedSheet?.session_name || null,
+          sheetSpeaker: matchedSheet?.speaker || null,
+          sheetModerator: matchedSheet?.moderator || null,
+          sheetRoom: matchedSheet?.room || null,
+          sheetTime: matchedSheet ? `${matchedSheet.start_time} - ${matchedSheet.end_time}` : null
+        });
+      }
+
+      // Find unmatched sheet sessions
+      const unmatchedSheetSessions = allSheetSessions
+        .filter((_, i) => !matchedSheetIndices.has(i))
+        .map(s => ({
+          name: s.session_name,
+          room: s.room,
+          time: `${s.start_time} - ${s.end_time}`,
+          date: s.date,
+          speaker: s.speaker
+        }));
+
+      const matched = matchResults.filter(r => r.matched);
+      const unmatched = matchResults.filter(r => !r.matched);
+
+      return success({
+        summary: {
+          totalDbSessions: dbSessions.length,
+          totalSheetSessions: allSheetSessions.length,
+          sheetCounts,
+          matched: matched.length,
+          unmatched: unmatched.length,
+          unmatchedSheetSessions: unmatchedSheetSessions.length
+        },
+        matched,
+        unmatched,
+        unmatchedSheetSessions: unmatchedSheetSessions.slice(0, 50)
+      });
+    } catch (err) {
+      fastify.log.error('Match check error:', err);
+      throw err;
+    }
   });
 
   // GET /api/sync/logs - Get sync history
