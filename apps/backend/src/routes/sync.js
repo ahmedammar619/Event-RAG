@@ -269,164 +269,216 @@ export default async function syncRoutes(fastify, options) {
     return sessions;
   }
 
-  // Find matching session in database
-  // STRICT: Only match by room + time slot (most reliable)
-  async function findMatchingSession(sheetSession) {
-    // Match by room + start_time + date (ignore end time as it may differ slightly)
-    const roomMatch = await db.query(`
-      SELECT s.*, r.name as room_name
-      FROM sessions s
-      LEFT JOIN rooms r ON s.room_id = r.id
-      LEFT JOIN event_days ed ON s.event_day_id = ed.id
-      WHERE ed.date = $1
-        AND s.start_time = $2
-        AND r.name ILIKE $3
-    `, [sheetSession.date, sheetSession.start_time, `%${sheetSession.room}%`]);
-
-    if (roomMatch.rows.length === 1) {
-      return { match: roomMatch.rows[0], matchType: 'room_time' };
-    }
-
-    if (roomMatch.rows.length > 1) {
-      return { match: null, matchType: 'multiple_room_time', candidates: roomMatch.rows };
-    }
-
-    // No match by room+time - don't fall back to fuzzy name matching (too unreliable)
-    return { match: null, matchType: 'none' };
+  // Normalize session name for matching
+  function normalizeSessionName(name) {
+    if (!name) return '';
+    return name
+      .toLowerCase()
+      .replace(/[^\w\s]/g, '') // Remove punctuation
+      .replace(/\s+/g, ' ')    // Normalize whitespace
+      .trim();
   }
 
-  // GET /api/sync/preview - Preview sync changes
+  // Find matching session in database by SESSION NAME (ground truth)
+  async function findMatchingSession(sheetSession, dbSessions) {
+    const sheetNameNorm = normalizeSessionName(sheetSession.session_name);
+    if (!sheetNameNorm || sheetNameNorm.length < 5) return { match: null, matchType: 'too_short' };
+
+    // Find best match by name similarity
+    let bestMatch = null;
+    let bestScore = 0;
+
+    for (const dbSession of dbSessions) {
+      const dbNameNorm = normalizeSessionName(dbSession.name);
+
+      // Check for exact match first
+      if (sheetNameNorm === dbNameNorm) {
+        return { match: dbSession, matchType: 'exact_name', score: 100 };
+      }
+
+      // Check if one contains the other (for partial matches)
+      if (sheetNameNorm.includes(dbNameNorm) || dbNameNorm.includes(sheetNameNorm)) {
+        const score = Math.min(sheetNameNorm.length, dbNameNorm.length) / Math.max(sheetNameNorm.length, dbNameNorm.length) * 100;
+        if (score > bestScore && score > 60) {
+          bestScore = score;
+          bestMatch = dbSession;
+        }
+      }
+
+      // Check first N words match
+      const sheetWords = sheetNameNorm.split(' ').slice(0, 5);
+      const dbWords = dbNameNorm.split(' ').slice(0, 5);
+      const matchingWords = sheetWords.filter(w => dbWords.includes(w)).length;
+      const wordScore = (matchingWords / Math.max(sheetWords.length, dbWords.length)) * 100;
+
+      if (wordScore > bestScore && wordScore > 50) {
+        bestScore = wordScore;
+        bestMatch = dbSession;
+      }
+    }
+
+    if (bestMatch && bestScore > 50) {
+      return { match: bestMatch, matchType: 'fuzzy_name', score: Math.round(bestScore) };
+    }
+
+    return { match: null, matchType: 'no_match' };
+  }
+
+  // GET /api/sync/preview - Preview sync changes (match by session name)
   fastify.get('/preview', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
     const logs = [];
     const changes = [];
     const errors = [];
+    const unmatched = [];
 
     try {
-      // Get event days from database
-      const daysResult = await db.query('SELECT id, date FROM event_days ORDER BY date');
-      const eventDays = daysResult.rows;
+      // Get ALL sessions from database with room info
+      const dbResult = await db.query(`
+        SELECT s.id, s.name, s.start_time, s.end_time, s.speaker,
+               r.id as room_id, r.name as room_name,
+               ed.id as day_id, ed.date
+        FROM sessions s
+        LEFT JOIN rooms r ON s.room_id = r.id
+        LEFT JOIN event_days ed ON s.event_day_id = ed.id
+        ORDER BY ed.date, s.start_time
+      `);
+      const dbSessions = dbResult.rows;
+      logs.push({ type: 'info', message: `Found ${dbSessions.length} sessions in database` });
 
-      logs.push({ type: 'info', message: `Found ${eventDays.length} event days in database` });
+      // Get all rooms for room matching
+      const roomsResult = await db.query('SELECT id, name FROM rooms');
+      const dbRooms = roomsResult.rows;
 
-      // Fetch and parse each day's sheet
+      // Fetch and parse sheets
       const allSheetSessions = [];
-
-      for (const day of eventDays) {
-        const dateStr = day.date.toISOString().split('T')[0];
-        const gid = DATE_TO_GID[dateStr];
-
-        if (!gid) {
-          logs.push({ type: 'warning', message: `No sheet GID configured for ${dateStr}` });
-          continue;
-        }
-
+      for (const [dateStr, gid] of Object.entries(DATE_TO_GID)) {
         try {
-          logs.push({ type: 'info', message: `Fetching sheet for ${dateStr} (gid=${gid})` });
+          logs.push({ type: 'info', message: `Fetching ${dateStr} sheet...` });
           const csv = await fetchSheetCSV(gid);
           const sessions = parseSheet(csv, dateStr);
-          logs.push({ type: 'success', message: `Parsed ${sessions.length} sessions from ${dateStr} sheet` });
+          logs.push({ type: 'success', message: `Parsed ${sessions.length} sessions from ${dateStr}` });
           allSheetSessions.push(...sessions);
         } catch (err) {
           errors.push({ date: dateStr, error: err.message });
-          logs.push({ type: 'error', message: `Failed to fetch ${dateStr}: ${err.message}` });
+          logs.push({ type: 'error', message: `Failed ${dateStr}: ${err.message}` });
         }
       }
 
-      logs.push({ type: 'info', message: `Total sessions from sheets: ${allSheetSessions.length}` });
+      logs.push({ type: 'info', message: `Total sheet sessions: ${allSheetSessions.length}` });
 
-      // Match each sheet session to database
+      // Match each sheet session to DB by SESSION NAME
       for (const sheetSession of allSheetSessions) {
-        const result = await findMatchingSession(sheetSession);
+        const result = findMatchingSession(sheetSession, dbSessions);
 
         if (result.match) {
           const dbSession = result.match;
-          const sessionChanges = [];
+          const diffs = [];
 
-          // Normalize time format for comparison (remove seconds if present)
-          const normalizeTime = (t) => t ? t.substring(0, 5) : null;
-          const dbEndTime = normalizeTime(dbSession.end_time);
-          const sheetEndTime = normalizeTime(sheetSession.end_time);
+          // Compare START TIME
+          const dbStart = dbSession.start_time?.substring(0, 5);
+          const sheetStart = sheetSession.start_time;
+          if (dbStart !== sheetStart) {
+            diffs.push({
+              field: 'start_time',
+              label: 'Start Time',
+              db: dbSession.start_time,
+              sheet: sheetSession.start_time
+            });
+          }
 
-          // Check if end_time needs update
-          if (sheetEndTime && dbEndTime !== sheetEndTime) {
-            sessionChanges.push({
+          // Compare END TIME
+          const dbEnd = dbSession.end_time?.substring(0, 5);
+          const sheetEnd = sheetSession.end_time;
+          if (dbEnd !== sheetEnd) {
+            diffs.push({
               field: 'end_time',
-              old: dbSession.end_time,
-              new: sheetSession.end_time
+              label: 'End Time',
+              db: dbSession.end_time,
+              sheet: sheetSession.end_time
             });
           }
 
-          // Check if speaker needs update (only if sheet has speaker data)
-          if (sheetSession.speaker) {
-            // Normalize speaker names for comparison (ignore case, punctuation differences)
-            const normalizeSpeaker = (s) => s ? s.toLowerCase().replace(/[;&,]/g, ' ').replace(/\s+/g, ' ').trim() : '';
-            const dbSpeakerNorm = normalizeSpeaker(dbSession.speaker);
-            const sheetSpeakerNorm = normalizeSpeaker(sheetSession.speaker);
-
-            if (dbSpeakerNorm !== sheetSpeakerNorm) {
-              sessionChanges.push({
-                field: 'speaker',
-                old: dbSession.speaker,
-                new: sheetSession.speaker
-              });
-            }
-          }
-
-          // Check if session name differs significantly (for logging, not auto-update)
-          const normalizeTitle = (t) => t ? t.toLowerCase().replace(/[^\w\s]/g, '').trim() : '';
-          const dbTitleNorm = normalizeTitle(dbSession.name);
-          const sheetTitleNorm = normalizeTitle(sheetSession.session_name);
-          if (dbTitleNorm !== sheetTitleNorm && sheetSession.session_name) {
-            // Log name mismatch but don't auto-update (names should match already)
-            logs.push({
-              type: 'warning',
-              message: `Session name mismatch at ${sheetSession.room} ${sheetSession.start_time}: DB="${dbSession.name}" vs Sheet="${sheetSession.session_name}"`
+          // Compare ROOM
+          const dbRoomNorm = dbSession.room_name?.toLowerCase().replace(/\s+/g, '');
+          const sheetRoomNorm = sheetSession.room?.toLowerCase().replace(/\s+/g, '');
+          if (dbRoomNorm !== sheetRoomNorm && sheetSession.room) {
+            // Find matching room ID in DB
+            const matchingRoom = dbRooms.find(r =>
+              r.name.toLowerCase().replace(/\s+/g, '') === sheetRoomNorm ||
+              r.name.toLowerCase().includes(sheetRoomNorm) ||
+              sheetRoomNorm.includes(r.name.toLowerCase().replace(/\s+/g, ''))
+            );
+            diffs.push({
+              field: 'room',
+              label: 'Room',
+              db: dbSession.room_name,
+              sheet: sheetSession.room,
+              newRoomId: matchingRoom?.id || null
             });
           }
 
-          if (sessionChanges.length > 0) {
+          // Compare MODERATOR (from sheet's moderator row)
+          if (sheetSession.moderator) {
+            // For now, just note the moderator - actual assignment is complex
+            diffs.push({
+              field: 'moderator',
+              label: 'Moderator',
+              db: '(check assignments)',
+              sheet: sheetSession.moderator,
+              note: 'Review moderator assignment'
+            });
+          }
+
+          if (diffs.length > 0) {
             changes.push({
-              action: 'update',
+              id: `${dbSession.id}-${Date.now()}`,
               matchType: result.matchType,
+              matchScore: result.score,
+              sessionName: dbSession.name,
               dbSession: {
                 id: dbSession.id,
                 name: dbSession.name,
-                speaker: dbSession.speaker,
                 room: dbSession.room_name,
-                time: `${dbSession.start_time} - ${dbSession.end_time}`
+                roomId: dbSession.room_id,
+                startTime: dbSession.start_time,
+                endTime: dbSession.end_time,
+                date: dbSession.date?.toISOString().split('T')[0]
               },
               sheetSession: {
                 name: sheetSession.session_name,
-                speaker: sheetSession.speaker,
                 room: sheetSession.room,
-                time: `${sheetSession.start_time} - ${sheetSession.end_time}`
+                startTime: sheetSession.start_time,
+                endTime: sheetSession.end_time,
+                moderator: sheetSession.moderator,
+                date: sheetSession.date
               },
-              changes: sessionChanges
+              diffs
             });
           }
-        } else if (result.matchType === 'multiple_room_time') {
-          logs.push({
-            type: 'warning',
-            message: `Multiple DB sessions at ${sheetSession.room} ${sheetSession.start_time} - skipping`,
-            candidates: result.candidates?.map(c => c.name)
-          });
         } else {
-          logs.push({
-            type: 'info',
-            message: `No match found for: "${sheetSession.session_name}" at ${sheetSession.start_time} in ${sheetSession.room}`
+          unmatched.push({
+            name: sheetSession.session_name,
+            room: sheetSession.room,
+            time: `${sheetSession.start_time} - ${sheetSession.end_time}`,
+            date: sheetSession.date,
+            reason: result.matchType
           });
         }
       }
 
       return success({
         summary: {
-          totalSheetSessions: allSheetSessions.length,
+          dbSessions: dbSessions.length,
+          sheetSessions: allSheetSessions.length,
+          matched: allSheetSessions.length - unmatched.length,
           changesFound: changes.length,
+          unmatched: unmatched.length,
           errors: errors.length
         },
         changes,
+        unmatched: unmatched.slice(0, 50),
         logs,
         errors
       });
@@ -437,7 +489,81 @@ export default async function syncRoutes(fastify, options) {
     }
   });
 
-  // POST /api/sync/apply - Apply sync changes
+  // POST /api/sync/apply-one - Apply a SINGLE change
+  fastify.post('/apply-one', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    const { sessionId, field, value, roomId } = request.body;
+
+    if (!sessionId || !field) {
+      throw validationError('sessionId and field are required');
+    }
+
+    try {
+      let query, params, oldValue;
+
+      // Get current value first
+      const current = await db.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
+      if (current.rows.length === 0) {
+        throw validationError('Session not found');
+      }
+      const session = current.rows[0];
+
+      switch (field) {
+        case 'start_time':
+          oldValue = session.start_time;
+          query = 'UPDATE sessions SET start_time = $1 WHERE id = $2';
+          params = [value, sessionId];
+          break;
+        case 'end_time':
+          oldValue = session.end_time;
+          query = 'UPDATE sessions SET end_time = $1 WHERE id = $2';
+          params = [value, sessionId];
+          break;
+        case 'room':
+          if (!roomId) throw validationError('roomId required for room change');
+          oldValue = session.room_id;
+          query = 'UPDATE sessions SET room_id = $1 WHERE id = $2';
+          params = [roomId, sessionId];
+          break;
+        default:
+          throw validationError(`Unknown field: ${field}`);
+      }
+
+      await db.query(query, params);
+
+      // Log the change
+      try {
+        await db.query(`
+          INSERT INTO sync_logs (sync_type, sync_data, created_at)
+          VALUES ($1, $2, NOW())
+        `, ['single_change', JSON.stringify({
+          sessionId,
+          sessionName: session.name,
+          field,
+          oldValue,
+          newValue: field === 'room' ? roomId : value,
+          timestamp: new Date().toISOString()
+        })]);
+      } catch (e) {
+        // Ignore log errors
+      }
+
+      return success({
+        applied: true,
+        sessionId,
+        field,
+        oldValue,
+        newValue: value
+      });
+
+    } catch (err) {
+      fastify.log.error('Apply single change error:', err);
+      throw err;
+    }
+  });
+
+  // POST /api/sync/apply - Apply multiple changes (kept for compatibility)
   fastify.post('/apply', {
     preHandler: [fastify.authenticate]
   }, async (request, reply) => {
@@ -448,78 +574,43 @@ export default async function syncRoutes(fastify, options) {
     }
 
     const results = [];
-    const syncLog = [];
 
     for (const change of changes) {
-      if (change.action === 'update' && change.dbSession?.id) {
+      for (const diff of (change.diffs || [])) {
         try {
-          // Build update query based on changes
-          for (const fieldChange of change.changes) {
-            let query = null;
-            let params = null;
+          let query, params;
 
-            if (fieldChange.field === 'speaker') {
-              query = 'UPDATE sessions SET speaker = $1 WHERE id = $2';
-              params = [fieldChange.new, change.dbSession.id];
-            } else if (fieldChange.field === 'end_time') {
+          switch (diff.field) {
+            case 'start_time':
+              query = 'UPDATE sessions SET start_time = $1 WHERE id = $2';
+              params = [diff.sheet, change.dbSession.id];
+              break;
+            case 'end_time':
               query = 'UPDATE sessions SET end_time = $1 WHERE id = $2';
-              params = [fieldChange.new, change.dbSession.id];
-            }
+              params = [diff.sheet, change.dbSession.id];
+              break;
+            case 'room':
+              if (diff.newRoomId) {
+                query = 'UPDATE sessions SET room_id = $1 WHERE id = $2';
+                params = [diff.newRoomId, change.dbSession.id];
+              }
+              break;
+          }
 
-            if (query) {
-              await db.query(query, params);
-
-              syncLog.push({
-                timestamp: new Date().toISOString(),
-                sessionId: change.dbSession.id,
-                sessionName: change.dbSession.name,
-                field: fieldChange.field,
-                oldValue: fieldChange.old,
-                newValue: fieldChange.new,
-                status: 'success'
-              });
-
-              results.push({
-                sessionId: change.dbSession.id,
-                status: 'updated',
-                field: fieldChange.field
-              });
-            }
+          if (query) {
+            await db.query(query, params);
+            results.push({ sessionId: change.dbSession.id, field: diff.field, status: 'applied' });
           }
         } catch (err) {
-          syncLog.push({
-            timestamp: new Date().toISOString(),
-            sessionId: change.dbSession.id,
-            sessionName: change.dbSession.name,
-            error: err.message,
-            status: 'failed'
-          });
-
-          results.push({
-            sessionId: change.dbSession.id,
-            status: 'failed',
-            error: err.message
-          });
+          results.push({ sessionId: change.dbSession.id, field: diff.field, status: 'failed', error: err.message });
         }
       }
     }
 
-    // Store sync log in database
-    try {
-      await db.query(`
-        INSERT INTO sync_logs (sync_type, sync_data, created_at)
-        VALUES ($1, $2, NOW())
-      `, ['google_sheet', JSON.stringify(syncLog)]);
-    } catch (err) {
-      // Table might not exist yet, log but don't fail
-      fastify.log.warn('Could not save sync log:', err.message);
-    }
-
     return success({
-      applied: results.filter(r => r.status === 'updated').length,
+      applied: results.filter(r => r.status === 'applied').length,
       failed: results.filter(r => r.status === 'failed').length,
-      results,
-      log: syncLog
+      results
     });
   });
 

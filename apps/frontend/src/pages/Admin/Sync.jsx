@@ -5,7 +5,8 @@ import { useToast } from '../../context/ToastContext'
 export default function Sync() {
   const toast = useToast()
   const [loading, setLoading] = useState(false)
-  const [applying, setApplying] = useState(false)
+  const [applyingField, setApplyingField] = useState(null) // Track which field is being applied
+  const [appliedFields, setAppliedFields] = useState({}) // Track applied changes { "sessionId-field": true }
   const [preview, setPreview] = useState(null)
   const [logs, setLogs] = useState([])
   const [showLogs, setShowLogs] = useState(false)
@@ -19,6 +20,7 @@ export default function Sync() {
   const loadPreview = async () => {
     setLoading(true)
     setPreview(null)
+    setAppliedFields({}) // Reset applied fields on new preview
     try {
       const response = await syncService.preview()
       setPreview(response.data.data)
@@ -29,22 +31,18 @@ export default function Sync() {
     }
   }
 
-  const applyChanges = async () => {
-    if (!preview?.changes?.length) return
-
-    if (!confirm(`Are you sure you want to apply ${preview.changes.length} changes?`)) return
-
-    setApplying(true)
+  // Apply a single field change
+  const applyOneChange = async (sessionId, field, value, roomId = null) => {
+    const key = `${sessionId}-${field}`
+    setApplyingField(key)
     try {
-      const response = await syncService.apply(preview.changes)
-      const result = response.data.data
-      toast.success(`Sync complete: ${result.applied} updated, ${result.failed} failed`)
-      setPreview(null)
-      loadLogs()
+      await syncService.applyOne(sessionId, field, value, roomId)
+      setAppliedFields(prev => ({ ...prev, [key]: true }))
+      toast.success(`Applied ${field} change`)
     } catch (err) {
-      toast.error(err.response?.data?.error?.message || 'Failed to apply changes')
+      toast.error(err.response?.data?.error?.message || `Failed to apply ${field} change`)
     } finally {
-      setApplying(false)
+      setApplyingField(null)
     }
   }
 
@@ -112,8 +110,8 @@ export default function Sync() {
           <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full font-medium">Main Database</span>
         </div>
         <p className="text-sm text-slate-500 mt-3">
-          Syncs speaker names from the ISNA Convention schedule spreadsheet to your sessions database.
-          Matching is done by room + time slot.
+          Syncs session times, rooms, and moderator info from Google Sheets.
+          Matching is done by session name. Review each change before applying.
         </p>
       </div>
 
@@ -268,60 +266,122 @@ export default function Sync() {
         <div className="card mb-4">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">Sync Preview</h3>
-            {preview.changes?.length > 0 && (
-              <button
-                className="btn btn-primary"
-                onClick={applyChanges}
-                disabled={applying}
-              >
-                {applying ? 'Applying...' : `Apply ${preview.changes.length} Changes`}
-              </button>
-            )}
+            <button
+              className="text-slate-500 hover:text-slate-700"
+              onClick={() => setPreview(null)}
+            >
+              ✕
+            </button>
           </div>
 
           {/* Summary */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="grid grid-cols-4 gap-4 mb-6">
             <div className="bg-slate-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-slate-700">{preview.summary?.totalSheetSessions || 0}</div>
-              <div className="text-sm text-slate-500">Sessions in Sheet</div>
+              <div className="text-2xl font-bold text-slate-700">{preview.summary?.sheetSessions || 0}</div>
+              <div className="text-sm text-slate-500">Sheet Sessions</div>
+            </div>
+            <div className="bg-green-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-green-700">{preview.summary?.matched || 0}</div>
+              <div className="text-sm text-green-600">Matched</div>
             </div>
             <div className="bg-blue-50 rounded-lg p-4 text-center">
               <div className="text-2xl font-bold text-blue-700">{preview.summary?.changesFound || 0}</div>
               <div className="text-sm text-blue-600">Changes Found</div>
             </div>
-            <div className="bg-red-50 rounded-lg p-4 text-center">
-              <div className="text-2xl font-bold text-red-700">{preview.summary?.errors || 0}</div>
-              <div className="text-sm text-red-600">Errors</div>
+            <div className="bg-amber-50 rounded-lg p-4 text-center">
+              <div className="text-2xl font-bold text-amber-700">{preview.summary?.unmatched || 0}</div>
+              <div className="text-sm text-amber-600">Unmatched</div>
             </div>
           </div>
 
-          {/* Changes List */}
+          {/* Changes List - Side by Side */}
           {preview.changes?.length > 0 ? (
-            <div className="space-y-3">
-              <h4 className="font-medium text-slate-700">Changes to Apply:</h4>
-              <div className="max-h-96 overflow-y-auto space-y-2">
+            <div className="space-y-4">
+              <h4 className="font-medium text-slate-700">
+                Review Changes ({preview.changes.length} sessions with differences):
+              </h4>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto">
                 {preview.changes.map((change, idx) => (
-                  <div key={idx} className="border rounded-lg p-3 bg-white">
-                    <div className="flex justify-between items-start">
+                  <div key={change.id || idx} className="border-2 border-slate-200 rounded-lg overflow-hidden">
+                    {/* Session Header */}
+                    <div className="bg-slate-100 px-4 py-3 flex justify-between items-start">
                       <div>
-                        <div className="font-medium text-slate-800">{change.dbSession?.name}</div>
-                        <div className="text-xs text-slate-500">
-                          {change.dbSession?.room} • {change.dbSession?.time}
+                        <div className="font-semibold text-slate-800">{change.sessionName}</div>
+                        <div className="text-xs text-slate-500 mt-1">
+                          {change.dbSession?.room} • {change.dbSession?.date}
                         </div>
                       </div>
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
-                        {change.matchType}
+                      <span className={`text-xs px-2 py-1 rounded font-medium ${
+                        change.matchType === 'exact_name'
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {change.matchType} {change.matchScore && `(${change.matchScore}%)`}
                       </span>
                     </div>
-                    <div className="mt-2 space-y-1">
-                      {change.changes?.map((c, i) => (
-                        <div key={i} className="text-sm flex items-center gap-2">
-                          <span className="font-medium text-slate-600">{c.field}:</span>
-                          <span className="text-red-600 line-through">{c.old || '(empty)'}</span>
-                          <span className="text-slate-400">→</span>
-                          <span className="text-green-600">{c.new}</span>
-                        </div>
-                      ))}
+
+                    {/* Differences Table */}
+                    <div className="divide-y divide-slate-100">
+                      {change.diffs?.map((diff, i) => {
+                        const key = `${change.dbSession?.id}-${diff.field}`
+                        const isApplied = appliedFields[key]
+                        const isApplying = applyingField === key
+                        const canApply = diff.field !== 'moderator' && !isApplied
+
+                        return (
+                          <div key={i} className={`px-4 py-3 ${isApplied ? 'bg-green-50' : ''}`}>
+                            <div className="grid grid-cols-12 gap-4 items-center">
+                              {/* Field Label */}
+                              <div className="col-span-2">
+                                <span className="text-sm font-medium text-slate-600">{diff.label}</span>
+                              </div>
+
+                              {/* DB Value (Current) */}
+                              <div className="col-span-4">
+                                <div className="text-xs text-slate-400 mb-1">Database</div>
+                                <div className="text-sm bg-red-50 px-2 py-1 rounded text-red-700 font-mono">
+                                  {diff.db || '(empty)'}
+                                </div>
+                              </div>
+
+                              {/* Sheet Value (New) */}
+                              <div className="col-span-4">
+                                <div className="text-xs text-slate-400 mb-1">Sheet</div>
+                                <div className="text-sm bg-green-50 px-2 py-1 rounded text-green-700 font-mono">
+                                  {diff.sheet || '(empty)'}
+                                </div>
+                              </div>
+
+                              {/* Apply Button */}
+                              <div className="col-span-2 text-right">
+                                {isApplied ? (
+                                  <span className="text-xs text-green-600 font-medium">Applied</span>
+                                ) : canApply ? (
+                                  <button
+                                    className="btn btn-sm btn-primary"
+                                    onClick={() => applyOneChange(
+                                      change.dbSession?.id,
+                                      diff.field,
+                                      diff.sheet,
+                                      diff.newRoomId
+                                    )}
+                                    disabled={isApplying}
+                                  >
+                                    {isApplying ? '...' : 'Apply'}
+                                  </button>
+                                ) : diff.field === 'moderator' ? (
+                                  <span className="text-xs text-slate-400">Review Only</span>
+                                ) : null}
+                              </div>
+                            </div>
+                            {diff.note && (
+                              <div className="mt-1 text-xs text-slate-500 italic ml-[16.666%]">
+                                {diff.note}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
                 ))}
@@ -332,6 +392,26 @@ export default function Sync() {
               <div className="text-4xl mb-2">✓</div>
               <div>No changes needed - everything is in sync!</div>
             </div>
+          )}
+
+          {/* Unmatched Sessions */}
+          {preview.unmatched?.length > 0 && (
+            <details className="mt-6">
+              <summary className="cursor-pointer font-medium text-amber-700 mb-2">
+                Unmatched Sheet Sessions ({preview.unmatched.length})
+              </summary>
+              <div className="max-h-64 overflow-y-auto space-y-2 mt-2">
+                {preview.unmatched.map((s, idx) => (
+                  <div key={idx} className="border border-amber-200 rounded-lg p-3 bg-amber-50 text-sm">
+                    <div className="font-medium text-slate-800">{s.name}</div>
+                    <div className="text-xs text-slate-500">
+                      {s.room} • {s.time} • {s.date}
+                    </div>
+                    <div className="text-xs text-amber-600 mt-1">Reason: {s.reason}</div>
+                  </div>
+                ))}
+              </div>
+            </details>
           )}
 
           {/* Logs */}

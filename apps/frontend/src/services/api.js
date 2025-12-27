@@ -163,6 +163,7 @@ export const exportService = {
 export const syncService = {
   preview: () => api.get('/sync/preview'),
   apply: (changes) => api.post('/sync/apply', { changes }),
+  applyOne: (sessionId, field, value, roomId) => api.post('/sync/apply-one', { sessionId, field, value, roomId }),
   getLogs: () => api.get('/sync/logs'),
   debug: (date) => api.get('/sync/debug', { params: { date } }),
   matchCheck: () => api.get('/sync/match-check'),
