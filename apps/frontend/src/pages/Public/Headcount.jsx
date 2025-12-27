@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { headcountService } from '../../services/api'
+import Header from '../../components/common/Header'
+import Footer from '../../components/common/Footer'
 
 export default function Headcount() {
   const [sessions, setSessions] = useState([])
@@ -44,9 +46,6 @@ export default function Headcount() {
       setSessions(sessionsRes.data.data)
       setRooms(roomsRes.data.data)
       setDates(datesRes.data.data)
-
-      // Don't auto-select a date - let user see all sessions by default
-      // They can filter by date if needed
     } catch (err) {
       setError('Failed to load sessions')
       console.error(err)
@@ -210,12 +209,12 @@ export default function Headcount() {
 
   const getStatusBadge = (status) => {
     const styles = {
-      now: 'bg-green-500 text-white animate-pulse',
-      just_ended: 'bg-orange-500 text-white',
-      soon: 'bg-amber-500 text-white',
-      upcoming: 'bg-blue-500 text-white',
+      now: 'bg-gradient-to-r from-green-500 to-emerald-500 text-white animate-pulse',
+      just_ended: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+      soon: 'bg-gradient-to-r from-amber-500 to-yellow-500 text-white',
+      upcoming: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white',
       past: 'bg-slate-400 text-white',
-      future: 'bg-blue-500 text-white'
+      future: 'bg-gradient-to-r from-purple-500 to-indigo-500 text-white'
     }
     const labels = {
       now: 'LIVE NOW',
@@ -226,7 +225,7 @@ export default function Headcount() {
       future: 'Upcoming'
     }
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide ${styles[status]}`}>
+      <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-sm ${styles[status]}`}>
         {labels[status]}
       </span>
     )
@@ -234,161 +233,180 @@ export default function Headcount() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-400 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-white text-lg">Loading sessions...</p>
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 via-white to-purple-50">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4 animate-pulse">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <p className="text-slate-600">Loading sessions...</p>
+          </div>
         </div>
+        <Footer />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 flex items-center justify-center">
-        <div className="text-center text-white">
-          <p className="text-xl mb-4">{error}</p>
-          <button onClick={loadData} className="px-6 py-2 bg-blue-500 rounded-lg hover:bg-blue-600 transition">
-            Retry
-          </button>
+      <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 via-white to-purple-50">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-red-100 rounded-full mb-4">
+              <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <p className="text-xl text-slate-800 mb-4">{error}</p>
+            <button onClick={loadData} className="px-6 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+              Retry
+            </button>
+          </div>
         </div>
+        <Footer />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+    <div className="min-h-screen flex flex-col bg-gradient-to-b from-purple-50 via-white to-purple-50">
+      <Header />
+
       {/* Toast */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg text-white font-medium transition-all transform ${
+        <div className={`fixed top-20 right-4 z-50 px-6 py-3 rounded-xl shadow-lg text-white font-medium transition-all transform ${
           toast.type === 'error' ? 'bg-red-500' : 'bg-green-500'
         }`}>
           {toast.message}
         </div>
       )}
 
-      {/* Header */}
-      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span className="text-3xl">📊</span>
-                Session Headcount
-              </h1>
-              <p className="text-slate-400 text-sm mt-1">
-                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} •
-                {' '}{filteredSessions.length} sessions shown
-              </p>
-            </div>
-            <div className="text-right">
-              <div className="text-slate-400 text-xs uppercase tracking-wide">Current Time</div>
-              <div className="text-2xl font-mono text-white">
-                {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-              </div>
-            </div>
-          </div>
-
-          {/* Search Bar */}
-          <div className="relative mb-4">
-            <input
-              type="text"
-              placeholder="Search by session name, speaker, or room..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-3 pl-12 bg-white/10 border border-white/20 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      <div className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
+        {/* Page Header */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-2xl mb-4 shadow-lg">
+            <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
             </svg>
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            )}
           </div>
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">
+            Session Headcount
+          </h1>
+          <p className="text-slate-600 max-w-md mx-auto">
+            Track attendance for conference sessions in real-time
+          </p>
+          <p className="text-sm text-slate-500 mt-2">
+            {currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} • {filteredSessions.length} sessions shown
+          </p>
+        </div>
 
-          {/* Filters Row */}
-          <div className="flex flex-wrap gap-3">
-            {/* Date Selector */}
-            <select
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="" className="bg-slate-800">All Days</option>
-              {dates.map(date => {
-                const dateStr = typeof date === 'string' ? date.split('T')[0] : date
-                return (
-                  <option key={dateStr} value={dateStr} className="bg-slate-800">
-                    {formatDate(dateStr)}
-                  </option>
-                )
-              })}
-            </select>
+        {/* Search & Filters Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-6 mb-6 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-purple-100 to-transparent rounded-bl-full opacity-50"></div>
 
-            {/* Room Selector */}
-            <select
-              value={selectedRoom}
-              onChange={(e) => setSelectedRoom(e.target.value)}
-              className="px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px]"
-            >
-              <option value="" className="bg-slate-800">All Rooms</option>
-              {rooms.map(room => (
-                <option key={room} value={room} className="bg-slate-800">{room}</option>
+          <div className="relative space-y-4">
+            {/* Search Input */}
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search by session name, speaker, or room..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full px-4 py-3 pl-12 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all"
+              />
+              <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
+
+            {/* Filter Row */}
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={selectedDate}
+                onChange={(e) => setSelectedDate(e.target.value)}
+                className="px-4 py-2 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none bg-white transition-all"
+              >
+                <option value="">All Days</option>
+                {dates.map(date => {
+                  const dateStr = typeof date === 'string' ? date.split('T')[0] : date
+                  return (
+                    <option key={dateStr} value={dateStr}>
+                      {formatDate(dateStr)}
+                    </option>
+                  )
+                })}
+              </select>
+
+              <select
+                value={selectedRoom}
+                onChange={(e) => setSelectedRoom(e.target.value)}
+                className="px-4 py-2 rounded-xl border-2 border-slate-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none bg-white transition-all max-w-[200px]"
+              >
+                <option value="">All Rooms</option>
+                {rooms.map(room => (
+                  <option key={room} value={room}>{room}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Time Filter Tabs */}
+            <div className="flex flex-wrap gap-2">
+              {[
+                { value: 'now', label: 'Happening Now', count: sessionCounts.now },
+                { value: 'just_ended', label: 'Just Ended', count: sessionCounts.just_ended },
+                { value: 'soon', label: 'Starting Soon', count: sessionCounts.soon },
+                { value: 'upcoming', label: 'Upcoming', count: sessionCounts.upcoming },
+                { value: 'past', label: 'Past', count: sessionCounts.past },
+                { value: 'all', label: 'All Sessions', count: sessionCounts.all }
+              ].map(tab => (
+                <button
+                  key={tab.value}
+                  onClick={() => setTimeFilter(tab.value)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+                    timeFilter === tab.value
+                      ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-200'
+                      : 'bg-gradient-to-r from-purple-50 to-indigo-50 text-purple-700 hover:from-purple-100 hover:to-indigo-100 border border-purple-100'
+                  }`}
+                >
+                  <span>{tab.label}</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs ${
+                    timeFilter === tab.value ? 'bg-white/20' : 'bg-purple-200/50'
+                  }`}>
+                    {tab.count}
+                  </span>
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 
-        {/* Time Filter Tabs */}
-        <div className="max-w-7xl mx-auto px-4 pb-2">
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            {[
-              { value: 'now', label: 'Happening Now', icon: '🔴', count: sessionCounts.now },
-              { value: 'just_ended', label: 'Just Ended', icon: '🏁', count: sessionCounts.just_ended },
-              { value: 'soon', label: 'Starting Soon', icon: '⏰', count: sessionCounts.soon },
-              { value: 'upcoming', label: 'Upcoming', icon: '📅', count: sessionCounts.upcoming },
-              { value: 'past', label: 'Past', icon: '✓', count: sessionCounts.past },
-              { value: 'all', label: 'All', icon: '📋', count: sessionCounts.all }
-            ].map(tab => (
-              <button
-                key={tab.value}
-                onClick={() => setTimeFilter(tab.value)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                  timeFilter === tab.value
-                    ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
-                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                <span>{tab.label}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  timeFilter === tab.value ? 'bg-white/20' : 'bg-white/10'
-                }`}>
-                  {tab.count}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {/* Sessions List */}
-      <main className="max-w-7xl mx-auto px-4 py-6">
+        {/* Sessions List */}
         {filteredSessions.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-semibold text-white mb-2">No sessions found</h3>
-            <p className="text-slate-400">Try adjusting your filters or search query</p>
+          <div className="bg-white rounded-2xl shadow-xl border border-purple-100 p-12 text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+              <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-slate-800 mb-2">No sessions found</h3>
+            <p className="text-slate-500">Try adjusting your filters or search query</p>
           </div>
         ) : (
-          <div className="grid gap-4">
+          <div className="space-y-4">
             {filteredSessions.map(session => {
               const status = getSessionStatus(session)
               const isEditing = editingId === session.id
@@ -396,21 +414,21 @@ export default function Headcount() {
               return (
                 <div
                   key={session.id}
-                  className={`bg-white/5 backdrop-blur border rounded-xl overflow-hidden transition-all hover:bg-white/10 ${
-                    status === 'now' ? 'border-green-500/50 ring-1 ring-green-500/30' :
-                    status === 'just_ended' ? 'border-orange-500/50 ring-1 ring-orange-500/30' :
-                    status === 'soon' ? 'border-amber-500/50' :
-                    'border-white/10'
+                  className={`bg-white rounded-2xl shadow-lg border-2 overflow-hidden transition-all hover:shadow-xl ${
+                    status === 'now' ? 'border-green-400 ring-2 ring-green-100' :
+                    status === 'just_ended' ? 'border-orange-400 ring-2 ring-orange-100' :
+                    status === 'soon' ? 'border-amber-400' :
+                    'border-purple-100'
                   }`}
                 >
-                  <div className="p-4 md:p-5">
+                  <div className="p-5">
                     <div className="flex flex-col md:flex-row md:items-start gap-4">
                       {/* Time Column */}
                       <div className="flex-shrink-0 md:w-32 text-center md:text-left">
-                        <div className="text-lg font-bold text-white">
+                        <div className="text-lg font-bold text-slate-800">
                           {formatTime(session.time_start)}
                         </div>
-                        <div className="text-sm text-slate-400">
+                        <div className="text-sm text-slate-500">
                           to {formatTime(session.time_end)}
                         </div>
                         <div className="mt-2">
@@ -420,15 +438,15 @@ export default function Headcount() {
 
                       {/* Main Content */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-lg font-semibold text-white mb-1 leading-tight">
+                        <h3 className="text-lg font-semibold text-slate-800 mb-1 leading-tight">
                           {session.title}
                         </h3>
                         {session.speakers && (
-                          <p className="text-blue-300 text-sm mb-2">
-                            👤 {session.speakers}
+                          <p className="text-purple-600 text-sm mb-2 font-medium">
+                            {session.speakers}
                           </p>
                         )}
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-400">
+                        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                           {session.room && (
                             <span className="flex items-center gap-1">
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -439,7 +457,7 @@ export default function Headcount() {
                             </span>
                           )}
                           {session.track && (
-                            <span className="px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded text-xs">
+                            <span className="px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs font-medium">
                               {session.track}
                             </span>
                           )}
@@ -449,24 +467,24 @@ export default function Headcount() {
                       {/* Headcount Section */}
                       <div className="flex-shrink-0 md:w-56">
                         {isEditing ? (
-                          <div className="bg-white/10 rounded-lg p-3 space-y-3">
+                          <div className="bg-purple-50 rounded-xl p-3 space-y-3 border border-purple-200">
                             <div className="flex gap-1">
                               <button
                                 onClick={() => setEditMode('percentage')}
-                                className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition ${
+                                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                                   editMode === 'percentage'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-slate-600 hover:bg-purple-100 border border-purple-200'
                                 }`}
                               >
                                 % Full
                               </button>
                               <button
                                 onClick={() => setEditMode('exact')}
-                                className={`flex-1 px-3 py-1.5 rounded text-sm font-medium transition ${
+                                className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                                   editMode === 'exact'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white/10 text-slate-300 hover:bg-white/20'
+                                    ? 'bg-purple-600 text-white'
+                                    : 'bg-white text-slate-600 hover:bg-purple-100 border border-purple-200'
                                 }`}
                               >
                                 Exact #
@@ -480,7 +498,7 @@ export default function Headcount() {
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
                                 placeholder={editMode === 'percentage' ? '0-100' : 'Count'}
-                                className="w-full px-3 py-2 bg-white/10 border border-white/20 rounded text-white text-center text-lg font-bold focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="w-full px-3 py-2 bg-white border-2 border-purple-200 rounded-lg text-slate-800 text-center text-lg font-bold focus:outline-none focus:ring-4 focus:ring-purple-100 focus:border-purple-500"
                                 autoFocus
                               />
                               {editMode === 'percentage' && (
@@ -488,21 +506,21 @@ export default function Headcount() {
                               )}
                             </div>
                             {editMode === 'percentage' && editValue && session.room_capacity && (
-                              <div className="text-center text-xs text-slate-400">
-                                ≈ {Math.round((parseInt(editValue) / 100) * session.room_capacity)} people
+                              <div className="text-center text-xs text-slate-500">
+                                Approx. {Math.round((parseInt(editValue) / 100) * session.room_capacity)} people
                               </div>
                             )}
                             <div className="flex gap-2">
                               <button
                                 onClick={() => saveHeadcount(session.id)}
                                 disabled={saving}
-                                className="flex-1 px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded font-medium transition disabled:opacity-50"
+                                className="flex-1 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-lg font-medium transition disabled:opacity-50 shadow-lg shadow-green-200"
                               >
                                 {saving ? '...' : 'Save'}
                               </button>
                               <button
                                 onClick={() => setEditingId(null)}
-                                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded font-medium transition"
+                                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg font-medium transition border border-slate-200"
                               >
                                 Cancel
                               </button>
@@ -511,23 +529,23 @@ export default function Headcount() {
                         ) : (
                           <button
                             onClick={() => startEditing(session)}
-                            className="w-full bg-white/10 hover:bg-white/20 border border-dashed border-white/30 hover:border-blue-400 rounded-lg p-4 text-center transition-all group"
+                            className="w-full bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-2 border-dashed border-purple-200 hover:border-purple-400 rounded-xl p-4 text-center transition-all group"
                           >
-                            <div className="text-xs text-slate-400 uppercase tracking-wide mb-1">Headcount</div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wide mb-1">Headcount</div>
                             {session.headcount_percentage !== null && session.headcount_percentage !== undefined ? (
-                              <div className="text-2xl font-bold text-blue-400">
+                              <div className="text-2xl font-bold text-purple-600">
                                 {session.headcount_percentage}%
-                                <span className="text-sm font-normal text-slate-400 ml-1">full</span>
+                                <span className="text-sm font-normal text-slate-500 ml-1">full</span>
                               </div>
                             ) : session.headcount !== null && session.headcount !== undefined ? (
-                              <div className="text-2xl font-bold text-blue-400">
+                              <div className="text-2xl font-bold text-purple-600">
                                 {session.headcount}
-                                <span className="text-sm font-normal text-slate-400 ml-1">people</span>
+                                <span className="text-sm font-normal text-slate-500 ml-1">people</span>
                               </div>
                             ) : (
-                              <div className="text-slate-500 flex items-center justify-center gap-2">
+                              <div className="text-slate-400 flex items-center justify-center gap-2">
                                 <span>Tap to add</span>
-                                <svg className="w-4 h-4 group-hover:text-blue-400 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 group-hover:text-purple-500 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                                 </svg>
                               </div>
@@ -542,12 +560,9 @@ export default function Headcount() {
             })}
           </div>
         )}
-      </main>
+      </div>
 
-      {/* Footer */}
-      <footer className="text-center py-8 text-slate-500 text-sm">
-        <p>MASCON 2025 • Session Headcount Tracker</p>
-      </footer>
+      <Footer />
     </div>
   )
 }
