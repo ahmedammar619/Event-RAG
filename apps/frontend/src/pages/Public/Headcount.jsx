@@ -377,7 +377,7 @@ export default function Headcount() {
               {/* Level Filter */}
               <div className="flex rounded-xl border-2 border-slate-200 overflow-hidden">
                 {[
-                  { value: 'all', label: 'All Levels' },
+                  { value: 'all', label: 'All Rooms' },
                   { value: 'level1', label: 'Level 1' },
                   { value: 'other', label: 'Other' }
                 ].map(opt => (
