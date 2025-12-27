@@ -150,7 +150,11 @@ export default function Headcount() {
       upcoming: dateFiltered.filter(s => getSessionStatus(s) === 'upcoming' || getSessionStatus(s) === 'soon').length,
       just_ended: dateFiltered.filter(s => getSessionStatus(s) === 'just_ended').length,
       past: dateFiltered.filter(s => getSessionStatus(s) === 'past' || getSessionStatus(s) === 'just_ended').length,
-      all: dateFiltered.length
+      all: dateFiltered.length,
+      // Level counts
+      allRooms: dateFiltered.length,
+      level1: dateFiltered.filter(s => isLevel1Room(s.room)).length,
+      otherRooms: dateFiltered.filter(s => !isLevel1Room(s.room)).length
     }
   }, [sessions, selectedDate, currentTime])
 
@@ -346,7 +350,7 @@ export default function Headcount() {
             </div>
 
             {/* Filter Row */}
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 justify-center">
               <select
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
@@ -377,27 +381,32 @@ export default function Headcount() {
               {/* Level Filter */}
               <div className="flex rounded-xl border-2 border-slate-200 overflow-hidden">
                 {[
-                  { value: 'all', label: 'All Rooms' },
-                  { value: 'level1', label: 'Level 1' },
-                  { value: 'other', label: 'Other' }
+                  { value: 'all', label: 'All Rooms', count: sessionCounts.allRooms },
+                  { value: 'level1', label: 'Level 1', count: sessionCounts.level1 },
+                  { value: 'other', label: 'Other', count: sessionCounts.otherRooms }
                 ].map(opt => (
                   <button
                     key={opt.value}
                     onClick={() => setLevelFilter(opt.value)}
-                    className={`px-4 py-2 text-sm font-medium transition-all ${
+                    className={`flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all ${
                       levelFilter === opt.value
                         ? 'bg-purple-600 text-white'
                         : 'bg-white text-slate-600 hover:bg-purple-50'
                     }`}
                   >
-                    {opt.label}
+                    <span>{opt.label}</span>
+                    <span className={`px-1.5 py-0.5 rounded-full text-xs ${
+                      levelFilter === opt.value ? 'bg-white/20' : 'bg-purple-100'
+                    }`}>
+                      {opt.count}
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Time Filter Tabs */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               {[
                 { value: 'now', label: 'Happening Now', count: sessionCounts.now },
                 { value: 'just_ended', label: 'Just Ended', count: sessionCounts.just_ended },
