@@ -452,6 +452,90 @@ export default async function syncRoutes(fastify, options) {
     });
   });
 
+  // GET /api/sync/diagnose - Diagnose why matching is failing
+  fastify.get('/diagnose', {
+    preHandler: [fastify.authenticate]
+  }, async (request, reply) => {
+    try {
+      // Get DB sessions with room info
+      const dbResult = await db.query(`
+        SELECT s.id, s.name, s.start_time, r.name as room_name, ed.date
+        FROM sessions s
+        LEFT JOIN rooms r ON s.room_id = r.id
+        LEFT JOIN event_days ed ON s.event_day_id = ed.id
+        ORDER BY ed.date, s.start_time
+        LIMIT 10
+      `);
+
+      // Get unique room names from DB
+      const dbRoomsResult = await db.query(`SELECT DISTINCT name FROM rooms ORDER BY name`);
+
+      // Get Saturday sheet data (most reliable)
+      const gid = '85377331';
+      const csv = await fetchSheetCSV(gid);
+      const rows = parseCSV(csv);
+      const headers = rows[0] || [];
+
+      // Extract room info from headers
+      const headerRooms = headers.slice(1).map((h, i) => ({
+        colIndex: i + 1,
+        fullHeader: h,
+        extractedRoom: extractRoomFromHeader(h)
+      }));
+
+      // Get first few parsed sessions
+      const sessions = parseSheet(csv, '2025-12-27');
+
+      // Get unique rooms from sheet
+      const sheetRooms = [...new Set(sessions.map(s => s.room))];
+
+      return success({
+        diagnosis: {
+          dbSessionCount: dbResult.rows.length,
+          dbRooms: dbRoomsResult.rows.map(r => r.name),
+          sheetHeaderCount: headers.length,
+          sheetHeaders: headerRooms,
+          sheetRoomsExtracted: sheetRooms,
+          parsedSessionCount: sessions.length
+        },
+        sampleDbSessions: dbResult.rows.slice(0, 5).map(s => ({
+          name: s.name,
+          room: s.room_name,
+          time: s.start_time,
+          date: s.date?.toISOString().split('T')[0]
+        })),
+        sampleSheetSessions: sessions.slice(0, 5).map(s => ({
+          name: s.session_name,
+          room: s.room,
+          roomHeader: s.room_header,
+          time: s.start_time,
+          date: s.date
+        })),
+        matchTest: {
+          description: "Testing if first DB session matches any sheet session",
+          dbSession: dbResult.rows[0] ? {
+            room: dbResult.rows[0].room_name,
+            time: dbResult.rows[0].start_time?.substring(0, 5),
+            date: dbResult.rows[0].date?.toISOString().split('T')[0]
+          } : null,
+          potentialMatches: sessions.filter(s => {
+            const db = dbResult.rows[0];
+            if (!db) return false;
+            const dbDate = db.date?.toISOString().split('T')[0];
+            const dbTime = db.start_time?.substring(0, 5);
+            return s.date === dbDate && s.start_time === dbTime;
+          }).map(s => ({
+            room: s.room,
+            roomHeader: s.room_header,
+            name: s.session_name
+          }))
+        }
+      });
+    } catch (err) {
+      throw err;
+    }
+  });
+
   // GET /api/sync/raw - Get raw CSV data from sheet
   fastify.get('/raw', {
     preHandler: [fastify.authenticate]

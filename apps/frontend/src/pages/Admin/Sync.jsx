@@ -13,6 +13,8 @@ export default function Sync() {
   const [debugLoading, setDebugLoading] = useState(false)
   const [matchCheck, setMatchCheck] = useState(null)
   const [matchLoading, setMatchLoading] = useState(false)
+  const [diagnose, setDiagnose] = useState(null)
+  const [diagnoseLoading, setDiagnoseLoading] = useState(false)
 
   const loadPreview = async () => {
     setLoading(true)
@@ -80,6 +82,18 @@ export default function Sync() {
     }
   }
 
+  const loadDiagnose = async () => {
+    setDiagnoseLoading(true)
+    try {
+      const response = await syncService.diagnose()
+      setDiagnose(response.data.data)
+    } catch (err) {
+      toast.error(err.response?.data?.error?.message || 'Failed to diagnose')
+    } finally {
+      setDiagnoseLoading(false)
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -131,10 +145,123 @@ export default function Sync() {
             onClick={loadMatchCheck}
             disabled={matchLoading}
           >
-            {matchLoading ? 'Checking...' : 'Check All 59 Sessions Match'}
+            {matchLoading ? 'Checking...' : 'Check All Sessions Match'}
+          </button>
+          <button
+            className="btn btn-outline text-red-600 border-red-300 hover:bg-red-50"
+            onClick={loadDiagnose}
+            disabled={diagnoseLoading}
+          >
+            {diagnoseLoading ? 'Diagnosing...' : 'Diagnose Match Issues'}
           </button>
         </div>
       </div>
+
+      {/* Diagnose Results */}
+      {diagnose && (
+        <div className="card mb-4 border-2 border-red-200">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-red-700">Diagnosis Report</h3>
+            <button className="text-slate-500 hover:text-slate-700" onClick={() => setDiagnose(null)}>✕</button>
+          </div>
+
+          <div className="space-y-4">
+            {/* Room Comparison */}
+            <div className="bg-red-50 rounded-lg p-4">
+              <h4 className="font-medium text-red-800 mb-2">Room Name Comparison</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="font-medium text-slate-700 mb-1">DB Rooms ({diagnose.diagnosis?.dbRooms?.length || 0}):</div>
+                  <div className="bg-white rounded p-2 max-h-32 overflow-y-auto">
+                    {diagnose.diagnosis?.dbRooms?.map((r, i) => (
+                      <div key={i} className="text-xs py-0.5 border-b border-slate-100">{r}</div>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="font-medium text-slate-700 mb-1">Sheet Rooms ({diagnose.diagnosis?.sheetRoomsExtracted?.length || 0}):</div>
+                  <div className="bg-white rounded p-2 max-h-32 overflow-y-auto">
+                    {diagnose.diagnosis?.sheetRoomsExtracted?.map((r, i) => (
+                      <div key={i} className="text-xs py-0.5 border-b border-slate-100">{r || '(null)'}</div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Header Analysis */}
+            <div className="bg-amber-50 rounded-lg p-4">
+              <h4 className="font-medium text-amber-800 mb-2">Sheet Headers ({diagnose.diagnosis?.sheetHeaderCount || 0} columns)</h4>
+              <div className="max-h-48 overflow-y-auto space-y-1">
+                {diagnose.diagnosis?.sheetHeaders?.map((h, i) => (
+                  <div key={i} className="text-xs bg-white rounded p-2 flex justify-between">
+                    <span className="truncate flex-1">{h.fullHeader || '(empty)'}</span>
+                    <span className="ml-2 px-2 py-0.5 bg-amber-200 rounded text-amber-800">
+                      {h.extractedRoom || 'NO ROOM EXTRACTED'}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Sample Sessions */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-medium text-blue-800 mb-2">Sample DB Sessions</h4>
+                <div className="space-y-2">
+                  {diagnose.sampleDbSessions?.map((s, i) => (
+                    <div key={i} className="text-xs bg-white rounded p-2">
+                      <div className="font-medium truncate">{s.name}</div>
+                      <div className="text-slate-500">
+                        <span className="bg-blue-100 px-1 rounded">{s.room}</span> • {s.time} • {s.date}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4">
+                <h4 className="font-medium text-green-800 mb-2">Sample Sheet Sessions</h4>
+                <div className="space-y-2">
+                  {diagnose.sampleSheetSessions?.map((s, i) => (
+                    <div key={i} className="text-xs bg-white rounded p-2">
+                      <div className="font-medium truncate">{s.name}</div>
+                      <div className="text-slate-500">
+                        <span className="bg-green-100 px-1 rounded">{s.room || 'null'}</span> • {s.time} • {s.date}
+                      </div>
+                      <div className="text-slate-400 truncate">Header: {s.roomHeader}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Match Test */}
+            <div className="bg-purple-50 rounded-lg p-4">
+              <h4 className="font-medium text-purple-800 mb-2">Match Test</h4>
+              <p className="text-xs text-purple-600 mb-2">{diagnose.matchTest?.description}</p>
+              {diagnose.matchTest?.dbSession && (
+                <div className="text-sm">
+                  <div className="mb-2">
+                    <span className="font-medium">Looking for:</span> Room="{diagnose.matchTest.dbSession.room}" Time={diagnose.matchTest.dbSession.time} Date={diagnose.matchTest.dbSession.date}
+                  </div>
+                  <div className="font-medium">Potential matches by date+time:</div>
+                  {diagnose.matchTest.potentialMatches?.length > 0 ? (
+                    <div className="bg-white rounded p-2 mt-1 space-y-1">
+                      {diagnose.matchTest.potentialMatches.map((m, i) => (
+                        <div key={i} className="text-xs">
+                          Room: <span className="bg-purple-100 px-1 rounded">{m.room || 'null'}</span> | {m.name}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-red-600 text-xs mt-1">No sessions found matching date+time!</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Preview Results */}
       {preview && (

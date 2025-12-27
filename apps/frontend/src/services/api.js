@@ -166,5 +166,6 @@ export const syncService = {
   getLogs: () => api.get('/sync/logs'),
   debug: (date) => api.get('/sync/debug', { params: { date } }),
   matchCheck: () => api.get('/sync/match-check'),
-  raw: (date) => api.get('/sync/raw', { params: { date } })
+  raw: (date) => api.get('/sync/raw', { params: { date } }),
+  diagnose: () => api.get('/sync/diagnose')
 }
