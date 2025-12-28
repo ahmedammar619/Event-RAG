@@ -6,9 +6,9 @@ const GOOGLE_SHEET_ID = '1x_z60Kv7pomIGq2vO-Bmr2lX0d3TOxg_G8Rwvt1CtJI';
 // To find GIDs: Open sheet, click on tab, look at URL for gid=XXXXX
 // TESTED: Friday=58 sessions, Saturday=57 sessions
 const DATE_TO_GID = {
-  '2025-12-26': '0',           // Friday - VERIFIED WORKING
-  '2025-12-27': '85377331',    // Saturday - VERIFIED WORKING
-  // '2025-12-28': 'NEED_GID'  // Sunday - USER MUST PROVIDE GID FROM SHEET URL
+  '2025-12-26': '0',           // Friday
+  '2025-12-27': '85377331',    // Saturday
+  '2025-12-28': '967372222',   // Sunday
 };
 
 export default async function syncRoutes(fastify, options) {
@@ -187,6 +187,22 @@ export default async function syncRoutes(fastify, options) {
     return { sessionName, speaker, moderator, allLines: lines };
   }
 
+  // Check if a row is a new track header row (mid-sheet headers)
+  function isTrackHeaderRow(row) {
+    // Track header rows have empty time column but cells contain track info with "Level" and newlines
+    let trackHeaderCount = 0;
+    for (let j = 1; j < row.length; j++) {
+      const cell = row[j]?.trim();
+      if (!cell) continue;
+      // Track headers contain newlines AND Level info
+      if (cell.includes('\n') && /Level\s*\d/i.test(cell)) {
+        trackHeaderCount++;
+      }
+    }
+    // If multiple cells look like track headers, it's a header row
+    return trackHeaderCount >= 2;
+  }
+
   // Parse a single sheet into sessions
   function parseSheet(csvData, date) {
     const rows = parseCSV(csvData);
@@ -196,10 +212,10 @@ export default async function syncRoutes(fastify, options) {
 
     // Row 0 is title (e.g., "• SATURDAY - DECEMBER 27, 2025 •"), skip it
     // Row 1 is headers
-    const headers = rows[1];
+    let headers = rows[1];
 
     // Extract room names from headers (skip first column which is TIME)
-    const rooms = headers.slice(1).map(h => ({
+    let rooms = headers.slice(1).map(h => ({
       original: h,
       room: extractRoomFromHeader(h)
     }));
@@ -242,7 +258,18 @@ export default async function syncRoutes(fastify, options) {
           lastSessionsPerColumn[j] = session;
         }
       } else if (timeStr === '' || !timeStr) {
-        // This is a MODERATOR row (no time, just moderator info)
+        // Check if this is a NEW TRACK HEADER row (mid-sheet)
+        if (isTrackHeaderRow(row)) {
+          // Update room mappings for new tracks
+          rooms = row.slice(1).map(h => ({
+            original: h,
+            room: extractRoomFromHeader(h)
+          }));
+          lastSessionsPerColumn = {}; // Reset since we have new rooms
+          continue;
+        }
+
+        // Otherwise, this is a MODERATOR row
         for (let j = 1; j < row.length && j <= rooms.length; j++) {
           const cellContent = row[j]?.trim();
           if (!cellContent) continue;
@@ -250,8 +277,10 @@ export default async function syncRoutes(fastify, options) {
           // Check if this looks like moderator info (name + phone number pattern)
           const hasPhone = /\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/.test(cellContent);
           const looksLikeName = /^[A-Z][a-z]+\s+[A-Z]/.test(cellContent);
+          // Also check for team names like "MSA Team", "Yaqeen Team"
+          const looksLikeTeam = /Team$/i.test(cellContent);
 
-          if ((hasPhone || looksLikeName) && lastSessionsPerColumn[j]) {
+          if ((hasPhone || looksLikeName || looksLikeTeam) && lastSessionsPerColumn[j]) {
             // Extract moderator name (remove phone number)
             const moderatorName = cellContent
               .replace(/\s*\(?\d{3}[-.\s)]*\d{3}[-.\s]*\d{4}\s*\)?/g, '')
