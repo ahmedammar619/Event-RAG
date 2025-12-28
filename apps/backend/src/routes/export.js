@@ -75,69 +75,48 @@ export default async function exportRoutes(fastify, options) {
       fastify.log.warn('RAG database not available, exporting main DB data only');
     }
 
-    // Create maps of RAG sessions for matching
+    // Create map of RAG sessions by normalized title for matching
     const ragSessionByTitle = new Map();
-    const ragSessionByKey = new Map(); // date + time + room
     for (const session of ragDbSessions.rows) {
       const normalizedTitle = session.title?.toLowerCase().trim();
       if (normalizedTitle) {
         ragSessionByTitle.set(normalizedTitle, session);
       }
-      // Also create a key based on date + time + room for fallback matching
-      const dateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
-      const timeStr = session.time_start || '';
-      const roomStr = (session.room || '').toLowerCase().trim();
-      if (dateStr && timeStr) {
-        const key = `${dateStr}|${timeStr}|${roomStr}`;
-        ragSessionByKey.set(key, session);
-      }
     }
 
-    // Track which RAG sessions have been matched
+    // Track which RAG sessions have been matched to main DB sessions
     const matchedRagIds = new Set();
 
-    // Merge data - prioritize main DB headcount, fall back to RAG DB
+    // Merge data - prioritize RAG DB headcount, fall back to main DB (match by session name)
     const mergedData = mainDbSessions.rows.map(session => {
       const normalizedName = session.name?.toLowerCase().trim();
-
-      // Try to find matching RAG session by name first, then by date+time+room
-      let ragSession = ragSessionByTitle.get(normalizedName);
-
-      if (!ragSession) {
-        // Fallback: match by date + time + room
-        const dateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
-        const timeStr = session.start_time ? String(session.start_time).slice(0, 5) : '';
-        const roomStr = (session.room_name || '').toLowerCase().trim();
-        if (dateStr && timeStr) {
-          const key = `${dateStr}|${timeStr}|${roomStr}`;
-          ragSession = ragSessionByKey.get(key);
-        }
-      }
+      const ragSession = ragSessionByTitle.get(normalizedName);
 
       if (ragSession) {
         matchedRagIds.add(ragSession.id);
       }
 
       // Determine final headcount values
-      // Priority: main DB > RAG DB
+      // Priority: RAG DB > main DB
       let finalHeadcount = null;
       let finalHeadcountPercentage = null;
       let headcountSource = 'none';
 
-      if (session.main_headcount !== null) {
-        finalHeadcount = session.main_headcount;
-        headcountSource = 'main_db';
-      } else if (ragSession && ragSession.rag_headcount !== null) {
+      // RAG DB takes priority
+      if (ragSession && ragSession.rag_headcount !== null) {
         finalHeadcount = ragSession.rag_headcount;
         headcountSource = 'rag_db';
+      } else if (session.main_headcount !== null) {
+        finalHeadcount = session.main_headcount;
+        headcountSource = 'main_db';
       }
 
-      if (session.main_headcount_percentage !== null) {
-        finalHeadcountPercentage = session.main_headcount_percentage;
-        headcountSource = 'main_db';
-      } else if (ragSession && ragSession.rag_headcount_percentage !== null) {
+      if (ragSession && ragSession.rag_headcount_percentage !== null) {
         finalHeadcountPercentage = ragSession.rag_headcount_percentage;
-        headcountSource = headcountSource === 'main_db' ? 'main_db' : 'rag_db';
+        headcountSource = 'rag_db';
+      } else if (session.main_headcount_percentage !== null) {
+        finalHeadcountPercentage = session.main_headcount_percentage;
+        headcountSource = headcountSource === 'rag_db' ? 'rag_db' : 'main_db';
       }
 
       // Calculate estimated headcount from percentage if available
@@ -333,68 +312,47 @@ export default async function exportRoutes(fastify, options) {
         }
       }
 
-      // Create maps of RAG sessions for matching
+      // Create map of RAG sessions by normalized title for matching
       const ragSessionByTitle = new Map();
-      const ragSessionByKey = new Map(); // date + time + room
       for (const session of ragDbSessions.rows) {
         const normalizedTitle = session.title?.toLowerCase().trim();
         if (normalizedTitle) {
           ragSessionByTitle.set(normalizedTitle, session);
         }
-        // Also create a key based on date + time + room for fallback matching
-        const dateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
-        const timeStr = session.time_start || '';
-        const roomStr = (session.room || '').toLowerCase().trim();
-        if (dateStr && timeStr) {
-          const key = `${dateStr}|${timeStr}|${roomStr}`;
-          ragSessionByKey.set(key, session);
-        }
       }
 
-      // Track which RAG sessions have been matched
+      // Track which RAG sessions have been matched to main DB sessions
       const matchedRagIds = new Set();
 
-      // Merge data from both databases
+      // Merge data from both databases (match by session name)
       const mergedData = mainDbSessions.rows.map(session => {
         const normalizedName = session.name?.toLowerCase().trim();
-
-        // Try to find matching RAG session by name first, then by date+time+room
-        let ragSession = ragSessionByTitle.get(normalizedName);
-
-        if (!ragSession) {
-          // Fallback: match by date + time + room
-          const dateStr = session.date ? new Date(session.date).toISOString().split('T')[0] : '';
-          const timeStr = session.start_time ? String(session.start_time).slice(0, 5) : '';
-          const roomStr = (session.room_name || '').toLowerCase().trim();
-          if (dateStr && timeStr) {
-            const key = `${dateStr}|${timeStr}|${roomStr}`;
-            ragSession = ragSessionByKey.get(key);
-          }
-        }
+        const ragSession = ragSessionByTitle.get(normalizedName);
 
         if (ragSession) {
           matchedRagIds.add(ragSession.id);
         }
 
-        // Determine final headcount values (priority: main DB > RAG DB)
+        // Determine final headcount values (priority: RAG DB > Main DB)
         let finalHeadcount = null;
         let finalHeadcountPercentage = null;
         let headcountSource = 'none';
 
-        if (session.main_headcount !== null && session.main_headcount > 0) {
-          finalHeadcount = session.main_headcount;
-          headcountSource = 'main_db';
-        } else if (ragSession && ragSession.rag_headcount !== null && ragSession.rag_headcount > 0) {
+        // RAG DB takes priority
+        if (ragSession && ragSession.rag_headcount !== null && ragSession.rag_headcount > 0) {
           finalHeadcount = ragSession.rag_headcount;
           headcountSource = 'rag_db';
+        } else if (session.main_headcount !== null && session.main_headcount > 0) {
+          finalHeadcount = session.main_headcount;
+          headcountSource = 'main_db';
         }
 
-        if (session.main_headcount_percentage !== null && session.main_headcount_percentage > 0) {
-          finalHeadcountPercentage = session.main_headcount_percentage;
-          headcountSource = 'main_db';
-        } else if (ragSession && ragSession.rag_headcount_percentage !== null && ragSession.rag_headcount_percentage > 0) {
+        if (ragSession && ragSession.rag_headcount_percentage !== null && ragSession.rag_headcount_percentage > 0) {
           finalHeadcountPercentage = ragSession.rag_headcount_percentage;
-          headcountSource = headcountSource === 'main_db' ? 'main_db' : 'rag_db';
+          headcountSource = 'rag_db';
+        } else if (session.main_headcount_percentage !== null && session.main_headcount_percentage > 0) {
+          finalHeadcountPercentage = session.main_headcount_percentage;
+          headcountSource = headcountSource === 'rag_db' ? 'rag_db' : 'main_db';
         }
 
         const roomCapacity = session.room_capacity || ragSession?.room_capacity;
